@@ -24,6 +24,6 @@ SupervisionFrame createFrame(char address, char control);
 
 void timeout();
 
-int retryCounter;
+extern int retryCounter;
 
 #endif

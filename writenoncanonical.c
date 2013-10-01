@@ -90,13 +90,7 @@ int main(int argc, char** argv)
     printf("%x\n", frame.address);
     printf("%x\n", frame.control);
     printf("%x\n", frame.bcc);
-    printf("%x\n", frame.frameTrailer);
-    
-    res = write(fd, &frame, sizeof(SupervisionFrame));
-    printf("%d bytes written\n", res);
-    
-    // receive
-    
+    printf("%x\n", frame.frameTrailer);    
     
     struct sigaction sa;
     sa.sa_handler = timeout;
@@ -107,35 +101,44 @@ int main(int argc, char** argv)
     int continueTrying = 1;
     SupervisionFrame frame2;
     
-    int curchar = 0;
     char finalstring[255];
-    
-	alarm(3);
-    
-    while ( STOP == FALSE && retryCounter < 3 ) {
-		res = read(fd,buf,1);
-		if (res == 1) {
-            finalstring[curchar] = buf[0];
-            curchar++;
-		}
-		if (finalstring[curchar-1] == FRAMEFLAG && curchar-1 > 0) STOP = TRUE;
+        
+    while (retryCounter < 3) {
+
+        int curchar = 0;
+        res = write(fd, &frame, sizeof(SupervisionFrame));
+        printf("%d bytes written\n", res);
+        alarm(3);
+        int currentTry = retryCounter;
+
+        while ( STOP == FALSE && retryCounter == currentTry ) {
+            res = read(fd,buf,1);
+            if (res == 1) {
+                finalstring[curchar] = buf[0];
+                curchar++;
+            }
+            if (finalstring[curchar-1] == FRAMEFLAG && curchar-1 > 0) STOP = TRUE;
+        }
+
+        if ( STOP == TRUE )
+            break;
     }
     
     
     
-	if(retryCounter < 3) {
+    if (STOP == TRUE) {
         
         //res = write(fd, &frame, sizeof(SupervisionFrame));
         
-		printf("%x\n", frame2.frameHeader);
+        printf("%x\n", frame2.frameHeader);
         printf("%x\n", frame2.address);
         printf("%x\n", frame2.control);
         printf("%x\n", frame2.bcc);
         printf("%x\n", frame2.frameTrailer);
-	}
+    }
     else
         printf("Failed!\n");
-	
+    
     /*
      int curchar = 0;
      char finalstring[255];

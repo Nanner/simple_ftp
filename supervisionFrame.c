@@ -1,6 +1,6 @@
 #include "supervisionFrame.h"
 
-retryCounter = 1;
+int retryCounter = 1;
 
 SupervisionFrame createFrame(char address, char control) {
 	SupervisionFrame frame;

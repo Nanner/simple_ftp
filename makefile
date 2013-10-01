@@ -23,4 +23,4 @@ clean:
 	rm -f *.o *.a receiver sender
 
 dist: 
-	cd .. && tar -zcvf T1G05.tar.gz T1G05/diffuse
+	cd .. && tar -zcvf T1G05.tar.gz T1G05
