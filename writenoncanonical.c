@@ -99,7 +99,7 @@ int main(int argc, char** argv)
     sigaction(SIGALRM, &sa, NULL);
     
     int continueTrying = 1;
-    SupervisionFrame frame2;
+    SupervisionFrame receivedFrame;
     
     char finalstring[255];
         
@@ -120,8 +120,13 @@ int main(int argc, char** argv)
             if (finalstring[curchar-1] == FRAMEFLAG && curchar-1 > 0) STOP = TRUE;
         }
 
-        if ( STOP == TRUE )
-            break;
+        if ( STOP == TRUE ) {
+            memcpy(&receivedFrame, finalstring, sizeof(SupervisionFrame));
+            if ( receivedFrame.address ^ receivedFrame.control == receivedFrame.bcc ){
+                break;
+            }
+            STOP == FALSE;
+        }
     }
     
     
