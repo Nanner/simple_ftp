@@ -108,7 +108,7 @@ int main(int argc, char** argv)
         if (retryCounter > 0) printf("Retry #%d\n", retryCounter);
         int curchar = 0;
         res = write(fd, &frame, sizeof(SupervisionFrame));
-        printf("%d bytes written\n", res);
+        printf("%d bytes sent\n", res);
         alarm(3);
         int currentTry = retryCounter;
 
@@ -124,6 +124,11 @@ int main(int argc, char** argv)
         if ( STOP == TRUE ) {
             memcpy(&receivedFrame, finalstring, sizeof(SupervisionFrame));
             if ( receivedFrame.address ^ receivedFrame.control == receivedFrame.bcc ){
+                if (receivedFrame.control == UA ) {
+                    printf("Handshake sucess!\n");
+                } else {
+                    printf("Didn't receive UA!\n");
+                }
                 break;
             }
             STOP == FALSE;
