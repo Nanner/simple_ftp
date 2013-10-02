@@ -103,8 +103,9 @@ int main(int argc, char** argv)
     
     char finalstring[255];
         
-    while (retryCounter < 3) {
+    while (retryCounter < 4) {
 
+        if (retryCounter > 0) printf("Retry #%d\n", retryCounter);
         int curchar = 0;
         res = write(fd, &frame, sizeof(SupervisionFrame));
         printf("%d bytes written\n", res);

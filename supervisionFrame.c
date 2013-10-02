@@ -14,6 +14,5 @@ SupervisionFrame createFrame(char address, char control) {
 }
 
 void timeout() {
-	printf("Retry #%d\n", retryCounter);
-	retryCounter++;
+    retryCounter++;
 }
