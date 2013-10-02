@@ -135,11 +135,11 @@ int main(int argc, char** argv)
         
         //res = write(fd, &frame, sizeof(SupervisionFrame));
         
-        printf("%x\n", frame2.frameHeader);
-        printf("%x\n", frame2.address);
-        printf("%x\n", frame2.control);
-        printf("%x\n", frame2.bcc);
-        printf("%x\n", frame2.frameTrailer);
+        printf("%x\n", receivedFrame.frameHeader);
+        printf("%x\n", receivedFrame.address);
+        printf("%x\n", receivedFrame.control);
+        printf("%x\n", receivedFrame.bcc);
+        printf("%x\n", receivedFrame.frameTrailer);
     }
     else
         printf("Failed!\n");
