@@ -1,26 +1,19 @@
 CFLAGS = -Wall
 BINDIR = ./
 
-DEPS= supervisionFrame.h
-OBJ_SHARED = supervisionFrame.o
-OBJ_SENDER = writenoncanonical.o
-OBJ_RECEIVER = noncanonical.o
-
-all: sender receiver
+DEPS = main.h supervisionFrame.h linkLayerProtocol.h
+OBJ  = main.o supervisionFrame.o linkLayerProtocol.o
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-sender: $(OBJ_SENDER) $(OBJ_SHARED)
-	$(CC) $(CFLAGS) $(OBJ_SENDER) $(OBJ_SHARED) -o $(BINDIR)/sender
-
-receiver: $(OBJ_RECEIVER) $(OBJ_SHARED)
-	$(CC) $(CFLAGS) $(OBJ_RECEIVER) $(OBJ_SHARED) -o $(BINDIR)/receiver
+nserial: $(OBJ)
+	$(CC) $(CFLAGS) $(OBJ) $(LIBS) -o $(BINDIR)nserial
 
 .PHONY: clean dist all
 
 clean:
-	rm -f *.o *.a receiver sender
+	rm -f *.o *.a nserial
 
 dist: 
 	cd .. && tar -zcvf T1G05.tar.gz T1G05
