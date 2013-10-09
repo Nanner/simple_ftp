@@ -59,8 +59,8 @@ int llopen(int port, int role){
 
     if (role == TRANSMITTER) 
     {
-        SupervisionFrame frame = createFrame(RECEIVER_ADDRESS, SET);
-        SupervisionFrame receivedFrame;
+        Frame frame = createSupervisionFrame(RECEIVER_ADDRESS, SET);
+        Frame receivedFrame;
         
         char receivedString[255];
             
@@ -68,7 +68,7 @@ int llopen(int port, int role){
 
             if (retryCounter > 0) printf("Retry #%d\n", retryCounter);
             int curchar = 0;
-            res = write(fd, &frame, sizeof(SupervisionFrame));
+            res = write(fd, &frame, sizeof(Frame));
             printf("%d bytes sent\n", res);
             alarm(3);
             int currentTry = retryCounter;
@@ -83,8 +83,8 @@ int llopen(int port, int role){
             }
 
             if ( STOP == TRUE ) {
-                memcpy(&receivedFrame, receivedString, sizeof(SupervisionFrame));
-                if ( (receivedFrame.address ^ receivedFrame.control) == receivedFrame.bcc ){
+                memcpy(&receivedFrame, receivedString, sizeof(Frame));
+                if ( (receivedFrame.address ^ receivedFrame.control) == receivedFrame.bcc1 ){
                     if (receivedFrame.control == UA ) {
                         printf("Handshake sucess!\n");
                     } else {
@@ -105,7 +105,7 @@ int llopen(int port, int role){
             printf("%x\n", receivedFrame.frameHeader);
             printf("%x\n", receivedFrame.address);
             printf("%x\n", receivedFrame.control);
-            printf("%x\n", receivedFrame.bcc);
+            printf("%x\n", receivedFrame.bcc1);
             printf("%x\n", receivedFrame.frameTrailer);
         }
         else
@@ -126,13 +126,13 @@ int llopen(int port, int role){
             if (finalstring[curchar-1]==FRAMEFLAG && curchar-1 > 0) STOP=TRUE;
         }
         
-        SupervisionFrame frame;
-        memcpy(&frame, finalstring, sizeof(SupervisionFrame));
-        printf("%x %x %x %x %x\n", frame.frameHeader, frame.address, frame.control, frame.bcc, frame.frameTrailer);
+        Frame frame;
+        memcpy(&frame, finalstring, sizeof(Frame));
+        printf("%x %x %x %x %x\n", frame.frameHeader, frame.address, frame.control, frame.bcc1, frame.frameTrailer);
         
-        SupervisionFrame confirmationFrame = createFrame(SENDER_ADDRESS, UA);
+        Frame confirmationFrame = createSupervisionFrame(SENDER_ADDRESS, UA);
         
-        res=write(fd, &confirmationFrame, sizeof(SupervisionFrame));
+        res=write(fd, &confirmationFrame, sizeof(Frame));
         printf("\nsent\n");
     }
 

@@ -22,7 +22,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
-#include "supervisionFrame.h"
+#include "frame.h"
+
+extern int retryCounter;
 
 int llopen(int port, int role);
 
@@ -31,5 +33,11 @@ int llclose(int fd);
 int llread(int fd, char * buffer);
 
 int llwrite(int fd, char * buffer, int length);
+
+int toPhysical(Frame* frame);
+
+int fromPhysical(Frame* frame);
+
+void timeout();
 
 #endif
