@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "linkLayerProtocol.h"
+#include "applicationLayer.h"
 
 int main(int argc, char** argv);
 

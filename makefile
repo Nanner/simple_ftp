@@ -1,8 +1,8 @@
 CFLAGS = -Wall
 BINDIR = ./
 
-DEPS = main.h supervisionFrame.h linkLayerProtocol.h
-OBJ  = main.o supervisionFrame.o linkLayerProtocol.o
+DEPS = main.h frame.h applicationLayer.h linkLayerProtocol.h
+OBJ  = main.o frame.o applicationLayer.o linkLayerProtocol.o
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)

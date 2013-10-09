@@ -2,7 +2,7 @@
 
 int llopen(int port, int role){
 
-    int fd, res;
+    int res;
     struct termios oldtio,newtio;
     char buf[255];
     int STOP=FALSE;
@@ -12,16 +12,16 @@ int llopen(int port, int role){
      */
 
     if ( port == COM1 ) {
-    	fd = open(COM1_PORT, O_RDWR | O_NOCTTY );
+    	applicationLayerConf.fileDescriptor = open(COM1_PORT, O_RDWR | O_NOCTTY );
     } else if ( port == COM2 ) {
-    	fd = open(COM2_PORT, O_RDWR | O_NOCTTY );
-    } else fd = -1;
+    	applicationLayerConf.fileDescriptor = open(COM2_PORT, O_RDWR | O_NOCTTY );
+    } else applicationLayerConf.fileDescriptor = -1;
 
-    if (fd < 0) {
+    if (applicationLayerConf.fileDescriptor < 0) {
         perror("port error"); exit(-1); 
     }
     
-    if ( tcgetattr(fd,&oldtio) == -1) { /* save current port settings */
+    if ( tcgetattr(applicationLayerConf.fileDescriptor,&oldtio) == -1) { /* save current port settings */
         perror("tcgetattr");
         return -1;
     }
@@ -42,9 +42,9 @@ int llopen(int port, int role){
      leitura do(s) próximo(s) caracter(es)
      */
     
-    tcflush(fd, TCIOFLUSH);
+    tcflush(applicationLayerConf.fileDescriptor, TCIOFLUSH);
     
-    if ( tcsetattr(fd,TCSANOW,&newtio) == -1) {
+    if ( tcsetattr(applicationLayerConf.fileDescriptor,TCSANOW,&newtio) == -1) {
         perror("tcsetattr");
         return -1;
     }
@@ -66,15 +66,16 @@ int llopen(int port, int role){
             
         while (retryCounter < 4) {
 
-            if (retryCounter > 0) printf("Retry #%d\n", retryCounter);
+            if (retryCounter > 0)
+                printf("Retry #%d\n", retryCounter);
             int curchar = 0;
-            res = write(fd, &frame, sizeof(Frame));
+            toPhysical(&frame);
             printf("%d bytes sent\n", res);
             alarm(3);
             int currentTry = retryCounter;
 
             while ( STOP == FALSE && retryCounter == currentTry ) {
-                res = read(fd,buf,1);
+                res = read(applicationLayerConf.fileDescriptor,buf,1);
                 if (res == 1) {
                     receivedString[curchar] = buf[0];
                     curchar++;
@@ -101,7 +102,7 @@ int llopen(int port, int role){
         
         if (STOP == TRUE) {
             
-            //res = write(fd, &frame, sizeof(SupervisionFrame));
+            //res = write(applicationLayerConf.fileDescriptor, &frame, sizeof(SupervisionFrame));
             
             printf("%x\n", receivedFrame.frameHeader);
             printf("%x\n", receivedFrame.address);
@@ -120,7 +121,7 @@ int llopen(int port, int role){
         char receivedString[255];
         
         while (STOP==FALSE) {
-            res = read(fd,buf,1);
+            res = read(applicationLayerConf.fileDescriptor,buf,1);
             if(res == 1){
                 receivedString[curchar] = buf[0];
                 curchar++;
@@ -134,21 +135,33 @@ int llopen(int port, int role){
         
         Frame confirmationFrame = createSupervisionFrame(SENDER_ADDRESS, UA);
         
-        res=write(fd, &confirmationFrame, sizeof(Frame));
+        res=write(applicationLayerConf.fileDescriptor, &confirmationFrame, sizeof(Frame));
         printf("\nsent\n");
     }
 
 
-    if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
+    if ( tcsetattr(applicationLayerConf.fileDescriptor,TCSANOW,&oldtio) == -1) {
         perror("tcsetattr");
         exit(-1);
     }
     
-    return fd;
+    return applicationLayerConf.fileDescriptor;
 }
 
 int llclose(int fd) {
     
     
     return 0;
+}
+
+void timeout() {
+    retryCounter++;
+}
+
+int toPhysical(Frame* frame) {
+    return write(applicationLayerConf.fileDescriptor, frame, sizeof(Frame));
+}
+
+int fromPhysical(Frame* frame) {
+    
 }

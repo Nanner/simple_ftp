@@ -1,5 +1,8 @@
 #include "main.h"
 
+LinkLayer linkLayerConf;
+ApplicationLayer applicationLayerConf;
+
 int main(int argc, char** argv)
 {    
     if ( (argc < 2) ||

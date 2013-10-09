@@ -23,6 +23,17 @@
 #include <unistd.h>
 #include <signal.h>
 #include "frame.h"
+#include "applicationLayer.h"
+
+typedef struct {
+    char port[20];
+    int baudRate;
+    unsigned int sequenceNumber;
+    unsigned int timeout;
+    unsigned int numTransmissions;
+} LinkLayer;
+
+extern LinkLayer linkLayerConf;
 
 extern int retryCounter;
 
