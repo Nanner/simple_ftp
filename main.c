@@ -28,7 +28,7 @@ int main(int argc, char** argv)
 
     fd = llopen(port, role);
     
-    close(fd);
-
+    llclose(fd);
+    
     return 0;
 }

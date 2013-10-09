@@ -15,7 +15,7 @@ int llopen(int port, int role){
     	fd = open(COM1_PORT, O_RDWR | O_NOCTTY );
     } else if ( port == COM2 ) {
     	fd = open(COM2_PORT, O_RDWR | O_NOCTTY );
-    }
+    } else fd = -1;
 
     if (fd < 0) {
         perror("port error"); exit(-1); 
@@ -48,9 +48,7 @@ int llopen(int port, int role){
         perror("tcsetattr");
         return -1;
     }
-    
-    printf("New termios structure set\n");
-        
+
     // install timeout handler
     struct sigaction sa;
     sa.sa_handler = timeout;
@@ -63,6 +61,8 @@ int llopen(int port, int role){
         Frame receivedFrame;
         
         char receivedString[255];
+        
+        retryCounter = 0;
             
         while (retryCounter < 4) {
 
@@ -84,12 +84,13 @@ int llopen(int port, int role){
 
             if ( STOP == TRUE ) {
                 memcpy(&receivedFrame, receivedString, sizeof(Frame));
-                if ( (receivedFrame.address ^ receivedFrame.control) == receivedFrame.bcc1 ){
+                if (validBCC1(receivedFrame)){
                     if (receivedFrame.control == UA ) {
                         printf("Handshake sucess!\n");
                     } else {
                         printf("Didn't receive UA!\n");
                     }
+                    alarm(0);
                     break;
                 }
                 STOP = FALSE;
@@ -114,20 +115,21 @@ int llopen(int port, int role){
 
     if (role == RECEIVER)
     {
+        printf("Waiting for connection...");
         int curchar = 0;
-        char finalstring[255];
+        char receivedString[255];
         
         while (STOP==FALSE) {
             res = read(fd,buf,1);
             if(res == 1){
-                finalstring[curchar] = buf[0];
+                receivedString[curchar] = buf[0];
                 curchar++;
             }
-            if (finalstring[curchar-1]==FRAMEFLAG && curchar-1 > 0) STOP=TRUE;
+            if (receivedString[curchar-1]==FRAMEFLAG && curchar-1 > 0) STOP=TRUE;
         }
         
         Frame frame;
-        memcpy(&frame, finalstring, sizeof(Frame));
+        memcpy(&frame, receivedString, sizeof(Frame));
         printf("%x %x %x %x %x\n", frame.frameHeader, frame.address, frame.control, frame.bcc1, frame.frameTrailer);
         
         Frame confirmationFrame = createSupervisionFrame(SENDER_ADDRESS, UA);
@@ -143,4 +145,10 @@ int llopen(int port, int role){
     }
     
     return fd;
+}
+
+int llclose(int fd) {
+    
+    
+    return 0;
 }
