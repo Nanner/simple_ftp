@@ -4,7 +4,7 @@ int llopen(int port, int role){
 
     int res;
     struct termios oldtio,newtio;
-    char buf[255];
+    char buf[sizeof(Frame) * sizeof(char)];
     int STOP=FALSE;
     /*
      Open serial port device for reading and writing and not as controlling tty
@@ -60,7 +60,7 @@ int llopen(int port, int role){
         Frame frame = createSupervisionFrame(RECEIVER_ADDRESS, SET);
         Frame receivedFrame;
         
-        char receivedString[255];
+        char receivedString[sizeof(Frame) * sizeof(char)];
         
         retryCounter = 0;
             
@@ -69,7 +69,7 @@ int llopen(int port, int role){
             if (retryCounter > 0)
                 printf("Retry #%d\n", retryCounter);
             int curchar = 0;
-            toPhysical(&frame);
+            res = toPhysical(&frame);
             printf("%d bytes sent\n", res);
             alarm(3);
             int currentTry = retryCounter;
@@ -93,6 +93,9 @@ int llopen(int port, int role){
                     }
                     alarm(0);
                     break;
+                }
+                else {
+                    printf("BCC1 check failed!\n");
                 }
                 STOP = FALSE;
             }
@@ -118,7 +121,7 @@ int llopen(int port, int role){
     {
         printf("Waiting for connection...");
         int curchar = 0;
-        char receivedString[255];
+        char receivedString[sizeof(Frame)];
         
         while (STOP==FALSE) {
             res = read(applicationLayerConf.fileDescriptor,buf,1);
