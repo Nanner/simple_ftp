@@ -2,10 +2,7 @@
 
 int llopen(int port, int role){
 
-    int res;
     struct termios oldtio,newtio;
-    char buf[sizeof(Frame) * sizeof(char)];
-    int STOP=FALSE;
     /*
      Open serial port device for reading and writing and not as controlling tty
      because we don't want to get killed if linenoise sends CTRL-C.
@@ -57,6 +54,7 @@ int llopen(int port, int role){
 
     if (role == TRANSMITTER) 
     {
+        int STOP=FALSE;
         Frame frame = createSupervisionFrame(RECEIVER_ADDRESS, SET);
         Frame receivedFrame;
         
@@ -69,57 +67,38 @@ int llopen(int port, int role){
             if (retryCounter > 0)
                 printf("Retry #%d\n", retryCounter);
             int curchar = 0;
-            res = toPhysical(&frame);
-
-            printf("\nSent:\n");
-            printf("%x\n", frame.frameHeader);
-            printf("%x\n", frame.address);
-            printf("%x\n", frame.control);
-            printf("%x\n", frame.bcc1);
-            printf("%x\n", frame.frameTrailer);
-
+            printf("Sending: %x %x %x %x %x\n", frame.frameHeader, frame.address, frame.control, frame.bcc1, frame.frameTrailer);
+            int res = toPhysical(&frame);
             printf("%d bytes sent\n", res);
+
             alarm(3);
             int currentTry = retryCounter;
 
-            while ( STOP == FALSE && retryCounter == currentTry ) {
-                res = read(applicationLayerConf.fileDescriptor,buf,1);
-                if (res == 1) {
-                    receivedString[curchar] = buf[0];
-                    curchar++;
+            while (STOP == FALSE && retryCounter == currentTry) {
+                res = fromPhysical(&receivedFrame, 1);
+
+                if(res != -1) {
+                    if (validBCC1(receivedFrame)){
+                        if (receivedFrame.control == UA ) {
+                            printf("Handshake sucess!\n");
+                            alarm(0);
+                            STOP = TRUE;
+                        } else {
+                            printf("Didn't receive UA!\n");
+                        }
+                    }
+                    else {
+                        printf("BCC1 check failed!\n");
+                    }
                 }
-                if (receivedString[curchar-1] == FRAMEFLAG && curchar-1 > 0) STOP = TRUE;
             }
 
-            if ( STOP == TRUE ) {
-                memcpy(&receivedFrame, receivedString, curchar);
-                if (validBCC1(receivedFrame)){
-                    if (receivedFrame.control == UA ) {
-                        printf("Handshake sucess!\n");
-                    } else {
-                        printf("Didn't receive UA!\n");
-                    }
-                    alarm(0);
-                    break;
-                }
-                else {
-                    printf("BCC1 check failed!\n");
-                }
-                STOP = FALSE;
-            }
+            if(STOP == TRUE)
+                break;
         }
         
-        
-        
         if (STOP == TRUE) {
-            
-            //res = write(applicationLayerConf.fileDescriptor, &frame, sizeof(SupervisionFrame));
-            printf("\nReceived:\n");
-            printf("%x\n", receivedFrame.frameHeader);
-            printf("%x\n", receivedFrame.address);
-            printf("%x\n", receivedFrame.control);
-            printf("%x\n", receivedFrame.bcc1);
-            printf("%x\n", receivedFrame.frameTrailer);
+            printf("\nReceived:\n%x %x %x %x %x\n", receivedFrame.frameHeader, receivedFrame.address, receivedFrame.control, receivedFrame.bcc1, receivedFrame.frameTrailer);
         }
         else
             printf("Failed!\n");
@@ -127,28 +106,15 @@ int llopen(int port, int role){
 
     if (role == RECEIVER)
     {
-        printf("Waiting for connection...");
-        int curchar = 0;
-        char receivedString[sizeof(Frame)];
-        
-        while (STOP==FALSE) {
-            res = read(applicationLayerConf.fileDescriptor,buf,1);
-            if(res == 1){
-                receivedString[curchar] = buf[0];
-                curchar++;
-            }
-            if (receivedString[curchar-1]==FRAMEFLAG && curchar-1 > 0) STOP=TRUE;
-        }
+        printf("Waiting for connection...\n");
         
         Frame receivedFrame;
-        memcpy(&receivedFrame, receivedString, curchar);
+        fromPhysical(&receivedFrame, 0);
         printf("\nReceived:\n%x %x %x %x %x\n", receivedFrame.frameHeader, receivedFrame.address, receivedFrame.control, receivedFrame.bcc1, receivedFrame.frameTrailer);
         
         Frame confirmationFrame = createSupervisionFrame(SENDER_ADDRESS, UA);
-        
-        res=write(applicationLayerConf.fileDescriptor, &confirmationFrame, sizeof(Frame));
-        printf("Send: %x %x %x %x %x\n", confirmationFrame.frameHeader, confirmationFrame.address, confirmationFrame.control, confirmationFrame.bcc1, confirmationFrame.frameTrailer);
-        printf("\nsent\n");
+        int res = toPhysical(&confirmationFrame);
+        printf("Sending %d bytes: %x %x %x %x %x\n", res, confirmationFrame.frameHeader, confirmationFrame.address, confirmationFrame.control, confirmationFrame.bcc1, confirmationFrame.frameTrailer);
     }
 
 
@@ -174,6 +140,25 @@ int toPhysical(Frame* frame) {
     return write(applicationLayerConf.fileDescriptor, frame, sizeof(Frame));
 }
 
-int fromPhysical(Frame* frame) {
-    
+int fromPhysical(Frame* frame, int exitOnTimeout) {
+    int curchar = 0;
+    char receivedString[sizeof(Frame)];
+    char buf[sizeof(Frame) * sizeof(char)];
+    int STOP=FALSE;
+    int res = 0;
+    int currentTry = retryCounter;
+
+    while (STOP==FALSE) {
+        res = read(applicationLayerConf.fileDescriptor,buf,1);
+        if(res == 1){
+            receivedString[curchar] = buf[0];
+            curchar++;
+        }
+        if (receivedString[curchar-1]==FRAMEFLAG && curchar-1 > 0 && curchar == sizeof(Frame)) STOP=TRUE;
+        if(exitOnTimeout && (currentTry < retryCounter))
+            return -1;
+    }
+
+    memcpy(frame, receivedString, sizeof(Frame));
+    return curchar;
 }

@@ -47,7 +47,7 @@ int llwrite(int fd, char * buffer, int length);
 
 int toPhysical(Frame* frame);
 
-int fromPhysical(Frame* frame);
+int fromPhysical(Frame* frame, int exitOnTimeout);
 
 void timeout();
 
