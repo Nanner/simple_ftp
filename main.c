@@ -31,12 +31,17 @@ int main(int argc, char** argv)
     linkLayerConf.frameSize = linkLayerConf.maxInformationSize + BASE_FRAME_SIZE;
     linkLayerConf.frameBCC2Index = FBCC2(linkLayerConf.maxInformationSize);
     linkLayerConf.frameTrailerIndex = FTRAILER(linkLayerConf.maxInformationSize);
-    printf("maxInfoSize: %lu\n", linkLayerConf.maxInformationSize);
+    printf("maxInfoSize: %lu\n", (unsigned long) linkLayerConf.maxInformationSize);
+
+    //TODO this is temporary, we should ask the user to define this in the future
+    linkLayerConf.numTransmissions = 4; //first transmission + retries
+    linkLayerConf.timeout = 3; //seconds until timeout
+
     
     int fd;
 
     fd = llopen(port, role);
-    
+    //TODO main receiving/sending loop
     llclose(fd);
     
     return 0;

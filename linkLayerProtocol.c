@@ -46,73 +46,32 @@ int llopen(int port, int role){
         return -1;
     }
 
-    // install timeout handler
-    struct sigaction sa;
-    sa.sa_handler = timeout;
-    sa.sa_flags = 0;
-    sigaction(SIGALRM, &sa, NULL);
+    if (role == TRANSMITTER) {
+       int result = setLink();
 
-    if (role == TRANSMITTER) 
-    {
-        int STOP=FALSE;
-        char* frame = createSupervisionFrame(RECEIVER_ADDRESS, SET, linkLayerConf.maxInformationSize);
-        char* receivedFrame = malloc(linkLayerConf.frameSize);
-        
-        retryCounter = 0;
-            
-        while (retryCounter < 4) {
-
-            if (retryCounter > 0)
-                printf("Retry #%d\n", retryCounter);
-            printf("Sending: %x %x %x %x %x\n", frame[FHEADER], frame[FADDRESS], frame[FCONTROL], frame[FBCC1], frame[linkLayerConf.frameTrailerIndex]);
-            int res = toPhysical(frame);
-            printf("%d bytes sent\n", res);
-
-            alarm(3);
-            int currentTry = retryCounter;
-
-            while (STOP == FALSE && retryCounter == currentTry) {
-                printf("Waiting for UA\n");
-                res = fromPhysical(receivedFrame, 1);
-
-                if(res != -1) {
-                    if (validBCC1(receivedFrame)){
-                        if (receivedFrame[FCONTROL] == UA ) {
-                            printf("Handshake sucess!\n");
-                            alarm(0);
-                            STOP = TRUE;
-                        } else {
-                            printf("Didn't receive UA!\n");
-                        }
-                    }
-                    else {
-                        printf("BCC1 check failed!\n");
-                    }
-                }
-            }
-
-            if(STOP == TRUE)
-                break;
-        }
-        
-        if (STOP == TRUE) {
-            printf("\nReceived:\n%x %x %x %x %x\n", receivedFrame[FHEADER], receivedFrame[FADDRESS], receivedFrame[FCONTROL], receivedFrame[FBCC1], receivedFrame[linkLayerConf.frameTrailerIndex]);
-        }
-        else
-            printf("Failed!\n");
+       switch(result) {
+        case 0:
+            printf("Handshake sucess! Link set.\n");
+            break;
+        case -1:
+            printf("Failed to set link, connection timed out.\n");
+            break;
+       }
     }
 
     if (role == RECEIVER)
     {
         printf("Waiting for connection...\n");
-        
-        char* receivedFrame = malloc(linkLayerConf.frameSize);
-        fromPhysical(receivedFrame, 0);
-        printf("\nReceived:\n%x %x %x %x %x\n", receivedFrame[FHEADER], receivedFrame[FADDRESS], receivedFrame[FCONTROL], receivedFrame[FBCC1], receivedFrame[linkLayerConf.frameTrailerIndex]);
-        
-        char* confirmationFrame = createSupervisionFrame(SENDER_ADDRESS, UA, linkLayerConf.maxInformationSize);
-        int res = toPhysical(confirmationFrame);
-        printf("Sending %d bytes: %x %x %x %x %x\n", res, confirmationFrame[FHEADER], confirmationFrame[FADDRESS], confirmationFrame[FCONTROL], confirmationFrame[FBCC1], confirmationFrame[linkLayerConf.frameTrailerIndex]);
+        int result = waitForLink();
+
+        switch(result) {
+        case 0:
+            printf("Handshake sent, link should be set.\n");
+            break;
+        case -1:
+            printf("Failed to set link, connection timed out.\n");
+            break;
+       }
     }
     
     return applicationLayerConf.fileDescriptor;
@@ -129,7 +88,81 @@ int llclose(int fd) {
 }
 
 int setLink() {
-    
+
+    // install timeout handler
+    struct sigaction sa;
+    sa.sa_handler = timeout;
+    sa.sa_flags = 0;
+    sigaction(SIGALRM, &sa, NULL);
+
+    int STOP=FALSE;
+    char* frame = createSupervisionFrame(RECEIVER_ADDRESS, SET, linkLayerConf.maxInformationSize);
+    char* receivedFrame = malloc(linkLayerConf.frameSize);
+
+    retryCounter = 0;
+
+    while (retryCounter < linkLayerConf.numTransmissions) {
+
+        if (retryCounter > 0)
+            printf("Retry #%d\n", retryCounter);
+        printf("Sending: %x %x %x %x %x\n", frame[FHEADER], frame[FADDRESS], frame[FCONTROL], frame[FBCC1], frame[linkLayerConf.frameTrailerIndex]);
+        int res = toPhysical(frame);
+        printf("%d bytes sent\n", res);
+
+        alarm(linkLayerConf.timeout);
+        int currentTry = retryCounter;
+
+        while (STOP == FALSE && retryCounter == currentTry) {
+            printf("Waiting for UA\n");
+            res = fromPhysical(receivedFrame, 1);
+            if(res != -1) {
+                if (validBCC1(receivedFrame)){
+                    if (receivedFrame[FCONTROL] == UA ) {
+                        alarm(0);
+                        STOP = TRUE;
+                    } else {
+                        printf("Didn't receive UA!\n");
+                    }
+                }
+                else {
+                    printf("BCC1 check failed!\n");
+                }
+            }
+        }
+        if(STOP == TRUE)
+            break;
+    }
+
+    if (STOP == TRUE) {
+        printf("\nReceived:\n%x %x %x %x %x\n", receivedFrame[FHEADER], receivedFrame[FADDRESS], receivedFrame[FCONTROL], receivedFrame[FBCC1], receivedFrame[linkLayerConf.frameTrailerIndex]);
+        return 0;
+    }
+    else
+        return -1;
+}
+
+int waitForLink() {
+
+    // install timeout handler
+    struct sigaction sa;
+    sa.sa_handler = timeout;
+    sa.sa_flags = 0;
+    sigaction(SIGALRM, &sa, NULL);
+
+    char* receivedFrame = malloc(linkLayerConf.frameSize);
+
+    alarm(SET_UA_TIMEOUT);
+    if(fromPhysical(receivedFrame, 1) != -1) {
+        printf("\nReceived:\n%x %x %x %x %x\n", receivedFrame[FHEADER], receivedFrame[FADDRESS], receivedFrame[FCONTROL], receivedFrame[FBCC1], receivedFrame[linkLayerConf.frameTrailerIndex]);
+
+        char* confirmationFrame = createSupervisionFrame(SENDER_ADDRESS, UA, linkLayerConf.maxInformationSize);
+        int res = toPhysical(confirmationFrame);
+        printf("Sending %d bytes: %x %x %x %x %x\n", res, confirmationFrame[FHEADER], confirmationFrame[FADDRESS], confirmationFrame[FCONTROL], confirmationFrame[FBCC1], confirmationFrame[linkLayerConf.frameTrailerIndex]);
+        return 0;
+    }
+    else {
+        return -1; 
+    }
 }
 
 void timeout() {
@@ -158,26 +191,22 @@ int fromPhysical(char* frame, int exitOnTimeout) {
                     //So, we only accept the byte if it's a frameflag
                     receivedString[curchar] = buf[0];
                     curchar++;
-                    printf("Found first char\n");
                 }
             //If we are on the second byte but receive yet another frameflag, it means the previous byte we received was the end of some
             //frame, and not the start of the one we want to receive. So, we just "push" our received string one byte down and start receiving
             //the rest of the frame. Since we use byte stuffing, we won't receive a frameflag in the middle of a valid frame, so we can use this.
             } else if(curchar == 1 && buf[0] == FRAMEFLAG) {
                 receivedString[0] = buf[0];
-                printf("Found another first char\n");
             }
             else {
                 receivedString[curchar] = buf[0];
                 curchar++;
             }
-
-            printf("Chars read so far: %d\n", curchar);
         }
         if (receivedString[curchar-1]==FRAMEFLAG && curchar-1 > 0 && curchar == linkLayerConf.frameSize)
             STOP=TRUE;
-        else if (receivedString[curchar-1]==FRAMEFLAG) {
-            printf("Found first char\n");
+        else if (receivedString[curchar-1] == FRAMEFLAG) {
+            //Found a frame flag, so we will reset our buffer and the char count
             receivedString[0] = FRAMEFLAG;
             curchar = 1;
         }

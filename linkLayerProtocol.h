@@ -13,6 +13,8 @@
 #define FALSE 0
 #define TRUE 1
 
+#define SET_UA_TIMEOUT 10
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
