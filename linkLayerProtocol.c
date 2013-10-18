@@ -58,15 +58,12 @@ int llopen(int port, int role){
         Frame frame = createSupervisionFrame(RECEIVER_ADDRESS, SET);
         Frame receivedFrame;
         
-        char receivedString[sizeof(Frame)];
-        
         retryCounter = 0;
             
         while (retryCounter < 4) {
 
             if (retryCounter > 0)
                 printf("Retry #%d\n", retryCounter);
-            int curchar = 0;
             printf("Sending: %x %x %x %x %x\n", frame.frameHeader, frame.address, frame.control, frame.bcc1, frame.frameTrailer);
             int res = toPhysical(&frame);
             printf("%d bytes sent\n", res);
@@ -75,6 +72,7 @@ int llopen(int port, int role){
             int currentTry = retryCounter;
 
             while (STOP == FALSE && retryCounter == currentTry) {
+                printf("Waiting for UA\n");
                 res = fromPhysical(&receivedFrame, 1);
 
                 if(res != -1) {
@@ -137,13 +135,14 @@ void timeout() {
 }
 
 int toPhysical(Frame* frame) {
+    tcflush(applicationLayerConf.fileDescriptor, TCIOFLUSH);
     return write(applicationLayerConf.fileDescriptor, frame, sizeof(Frame));
 }
 
 int fromPhysical(Frame* frame, int exitOnTimeout) {
     int curchar = 0;
     char receivedString[sizeof(Frame)];
-    char buf[sizeof(Frame) * sizeof(char)];
+    char buf[sizeof(Frame)];
     int STOP=FALSE;
     int res = 0;
     int currentTry = retryCounter;
@@ -151,8 +150,24 @@ int fromPhysical(Frame* frame, int exitOnTimeout) {
     while (STOP==FALSE) {
         res = read(applicationLayerConf.fileDescriptor,buf,1);
         if(res == 1){
-            receivedString[curchar] = buf[0];
-            curchar++;
+            //If we are receiving the first byte, we want to make sure it's a frame header or a frame trailer before we start receiving the frame
+            if(curchar == 0) {
+                if(buf[0] == FRAMEFLAG) {
+                    //So, we only accept the byte if it's a frameflag
+                    receivedString[curchar] = buf[0];
+                    curchar++;
+                }
+            //If we are on the second byte but receive yet another frameflag, it means the previous byte we received was the end of some
+            //frame, and not the start of the one we want to receive. So, we just "push" our received string one byte down and start receiving
+            //the rest of the frame. Since we use byte stuffing, we won't receive a frameflag in the middle of a valid frame, so we can use this.
+            } else if(curchar == 1 && buf[0] == FRAMEFLAG) {
+                receivedString[0] = buf[0];
+            }
+            else {
+                receivedString[curchar] = buf[0];
+                curchar++;
+            }
+            printf("Current num: %d\n", curchar);
         }
         if (receivedString[curchar-1]==FRAMEFLAG && curchar-1 > 0 && curchar == sizeof(Frame)) STOP=TRUE;
         if(exitOnTimeout && (currentTry < retryCounter))
