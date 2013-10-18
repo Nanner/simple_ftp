@@ -167,7 +167,6 @@ int fromPhysical(Frame* frame, int exitOnTimeout) {
                 receivedString[curchar] = buf[0];
                 curchar++;
             }
-            printf("Current num: %d\n", curchar);
         }
         if (receivedString[curchar-1]==FRAMEFLAG && curchar-1 > 0 && curchar == sizeof(Frame)) STOP=TRUE;
         if(exitOnTimeout && (currentTry < retryCounter))

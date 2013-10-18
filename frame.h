@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#define MAX_INFO_LENGTH 1024
+#define MAX_INFO_LENGTH 256
 
 #define RECEIVER_ADDRESS 0x03
 #define SENDER_ADDRESS 0x01
