@@ -73,6 +73,8 @@ int llopen(int port, int role){
             break;
        }
     }
+
+    linkLayerConf.sequenceNumber = 0;
     
     return applicationLayerConf.fileDescriptor;
 }
@@ -218,3 +220,9 @@ int fromPhysical(char* frame, int exitOnTimeout) {
     memcpy(frame, receivedString, linkLayerConf.frameSize);
     return curchar;
 }
+
+int receivePacket(char* packet) {
+    char* receivedFrame = malloc(linkLayerConf.frameSize);
+    fromPhysical(receivedFrame, 0);
+}
+

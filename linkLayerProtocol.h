@@ -48,13 +48,17 @@ int llopen(int port, int role);
 
 int llclose(int fd);
 
+int receivePacket(char* packet);
+
+int sendPacket(char* packet);
+
 int setLink();
 
 int waitForLink();
 
-int llread(int fd, char * buffer);
+//int llread(int fd, char * buffer); //Might be the same as fromPhysical
 
-int llwrite(int fd, char * buffer, int length);
+//int llwrite(int fd, char * buffer, int length); //Might be the same as toPhysical
 
 int toPhysical(char* frame);
 

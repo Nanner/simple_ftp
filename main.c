@@ -36,12 +36,35 @@ int main(int argc, char** argv)
     //TODO this is temporary, we should ask the user to define this in the future
     linkLayerConf.numTransmissions = 4; //first transmission + retries
     linkLayerConf.timeout = 3; //seconds until timeout
-
     
     int fd;
 
     fd = llopen(port, role);
     //TODO main receiving/sending loop
+
+    if(role == TRANSMITTER) {
+        //TODO these will be changed by the application layer later on, not fixed
+        int numberOfPackets = 4;
+        char packetArray[4][256] = {"cookies", "chocolate", "chocolatefruitsareamazingstuffdude", "annoyinglastpacket"};
+
+        unsigned int i = 0;
+        for(; i < numberOfPackets; i++)
+            sendPacket(packetArray[i]);
+
+        //disconnect();
+    }
+    else if(role == RECEIVER) {
+        int numberOfPackets = 4; //TODO temporary, this needs to be figured out from the packets themselves, I think
+
+        unsigned int i = 0;
+        for(; i < numberOfPackets; i++) {
+            char* string = malloc(256);
+            receivePacket(string);
+            printf("Received: %s\n", string);
+        }
+
+    }
+
     llclose(fd);
     
     return 0;
