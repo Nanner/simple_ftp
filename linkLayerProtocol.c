@@ -2,7 +2,7 @@
 
 int llopen(int port, int role){
 
-    struct termios oldtio,newtio;
+    struct termios newtio;
     /*
      Open serial port device for reading and writing and not as controlling tty
      because we don't want to get killed if linenoise sends CTRL-C.
@@ -18,7 +18,7 @@ int llopen(int port, int role){
         perror("port error"); exit(-1); 
     }
     
-    if ( tcgetattr(applicationLayerConf.fileDescriptor,&oldtio) == -1) { /* save current port settings */
+    if ( tcgetattr(applicationLayerConf.fileDescriptor,&linkLayerConf.oldtio) == -1) { /* save current port settings */
         perror("tcgetattr");
         return -1;
     }
@@ -55,8 +55,8 @@ int llopen(int port, int role){
     if (role == TRANSMITTER) 
     {
         int STOP=FALSE;
-        Frame frame = createSupervisionFrame(RECEIVER_ADDRESS, SET);
-        Frame receivedFrame;
+        char* frame = createSupervisionFrame(RECEIVER_ADDRESS, SET, linkLayerConf.maxInformationSize);
+        char* receivedFrame = malloc(linkLayerConf.frameSize);
         
         retryCounter = 0;
             
@@ -64,8 +64,8 @@ int llopen(int port, int role){
 
             if (retryCounter > 0)
                 printf("Retry #%d\n", retryCounter);
-            printf("Sending: %x %x %x %x %x\n", frame.frameHeader, frame.address, frame.control, frame.bcc1, frame.frameTrailer);
-            int res = toPhysical(&frame);
+            printf("Sending: %x %x %x %x %x\n", frame[FHEADER], frame[FADDRESS], frame[FCONTROL], frame[FBCC1], frame[linkLayerConf.frameTrailerIndex]);
+            int res = toPhysical(frame);
             printf("%d bytes sent\n", res);
 
             alarm(3);
@@ -73,11 +73,11 @@ int llopen(int port, int role){
 
             while (STOP == FALSE && retryCounter == currentTry) {
                 printf("Waiting for UA\n");
-                res = fromPhysical(&receivedFrame, 1);
+                res = fromPhysical(receivedFrame, 1);
 
                 if(res != -1) {
                     if (validBCC1(receivedFrame)){
-                        if (receivedFrame.control == UA ) {
+                        if (receivedFrame[FCONTROL] == UA ) {
                             printf("Handshake sucess!\n");
                             alarm(0);
                             STOP = TRUE;
@@ -96,7 +96,7 @@ int llopen(int port, int role){
         }
         
         if (STOP == TRUE) {
-            printf("\nReceived:\n%x %x %x %x %x\n", receivedFrame.frameHeader, receivedFrame.address, receivedFrame.control, receivedFrame.bcc1, receivedFrame.frameTrailer);
+            printf("\nReceived:\n%x %x %x %x %x\n", receivedFrame[FHEADER], receivedFrame[FADDRESS], receivedFrame[FCONTROL], receivedFrame[FBCC1], receivedFrame[linkLayerConf.frameTrailerIndex]);
         }
         else
             printf("Failed!\n");
@@ -106,43 +106,45 @@ int llopen(int port, int role){
     {
         printf("Waiting for connection...\n");
         
-        Frame receivedFrame;
-        fromPhysical(&receivedFrame, 0);
-        printf("\nReceived:\n%x %x %x %x %x\n", receivedFrame.frameHeader, receivedFrame.address, receivedFrame.control, receivedFrame.bcc1, receivedFrame.frameTrailer);
+        char* receivedFrame = malloc(linkLayerConf.frameSize);
+        fromPhysical(receivedFrame, 0);
+        printf("\nReceived:\n%x %x %x %x %x\n", receivedFrame[FHEADER], receivedFrame[FADDRESS], receivedFrame[FCONTROL], receivedFrame[FBCC1], receivedFrame[linkLayerConf.frameTrailerIndex]);
         
-        Frame confirmationFrame = createSupervisionFrame(SENDER_ADDRESS, UA);
-        int res = toPhysical(&confirmationFrame);
-        printf("Sending %d bytes: %x %x %x %x %x\n", res, confirmationFrame.frameHeader, confirmationFrame.address, confirmationFrame.control, confirmationFrame.bcc1, confirmationFrame.frameTrailer);
-    }
-
-
-    if ( tcsetattr(applicationLayerConf.fileDescriptor,TCSANOW,&oldtio) == -1) {
-        perror("tcsetattr");
-        exit(-1);
+        char* confirmationFrame = createSupervisionFrame(SENDER_ADDRESS, UA, linkLayerConf.maxInformationSize);
+        int res = toPhysical(confirmationFrame);
+        printf("Sending %d bytes: %x %x %x %x %x\n", res, confirmationFrame[FHEADER], confirmationFrame[FADDRESS], confirmationFrame[FCONTROL], confirmationFrame[FBCC1], confirmationFrame[linkLayerConf.frameTrailerIndex]);
     }
     
     return applicationLayerConf.fileDescriptor;
 }
 
 int llclose(int fd) {
-    
+
+    if ( tcsetattr(applicationLayerConf.fileDescriptor,TCSANOW,&linkLayerConf.oldtio) == -1) {
+        perror("tcsetattr");
+        exit(-1);
+    }
     
     return 0;
+}
+
+int setLink() {
+    
 }
 
 void timeout() {
     retryCounter++;
 }
 
-int toPhysical(Frame* frame) {
+int toPhysical(char* frame) {
     tcflush(applicationLayerConf.fileDescriptor, TCIOFLUSH);
-    return write(applicationLayerConf.fileDescriptor, frame, sizeof(Frame));
+    return write(applicationLayerConf.fileDescriptor, frame, linkLayerConf.frameSize);
 }
 
-int fromPhysical(Frame* frame, int exitOnTimeout) {
+int fromPhysical(char* frame, int exitOnTimeout) {
     int curchar = 0;
-    char receivedString[sizeof(Frame)];
-    char buf[sizeof(Frame)];
+    char receivedString[linkLayerConf.frameSize];
+    char buf[linkLayerConf.frameSize];
     int STOP=FALSE;
     int res = 0;
     int currentTry = retryCounter;
@@ -156,23 +158,34 @@ int fromPhysical(Frame* frame, int exitOnTimeout) {
                     //So, we only accept the byte if it's a frameflag
                     receivedString[curchar] = buf[0];
                     curchar++;
+                    printf("Found first char\n");
                 }
             //If we are on the second byte but receive yet another frameflag, it means the previous byte we received was the end of some
             //frame, and not the start of the one we want to receive. So, we just "push" our received string one byte down and start receiving
             //the rest of the frame. Since we use byte stuffing, we won't receive a frameflag in the middle of a valid frame, so we can use this.
             } else if(curchar == 1 && buf[0] == FRAMEFLAG) {
                 receivedString[0] = buf[0];
+                printf("Found another first char\n");
             }
             else {
                 receivedString[curchar] = buf[0];
                 curchar++;
             }
+
+            printf("Chars read so far: %d\n", curchar);
         }
-        if (receivedString[curchar-1]==FRAMEFLAG && curchar-1 > 0 && curchar == sizeof(Frame)) STOP=TRUE;
+        if (receivedString[curchar-1]==FRAMEFLAG && curchar-1 > 0 && curchar == linkLayerConf.frameSize)
+            STOP=TRUE;
+        else if (receivedString[curchar-1]==FRAMEFLAG) {
+            printf("Found first char\n");
+            receivedString[0] = FRAMEFLAG;
+            curchar = 1;
+        }
+
         if(exitOnTimeout && (currentTry < retryCounter))
             return -1;
     }
 
-    memcpy(frame, receivedString, sizeof(Frame));
+    memcpy(frame, receivedString, linkLayerConf.frameSize);
     return curchar;
 }

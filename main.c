@@ -5,12 +5,12 @@ ApplicationLayer applicationLayerConf;
 
 int main(int argc, char** argv)
 {    
-    if ( (argc < 2) ||
+    if ( (argc < 4) ||
         ((strcmp("/dev/ttyS0", argv[1])!=0) &&
          (strcmp("/dev/ttyS1", argv[1])!=0) ) ||
         ((strcmp("transmitter",argv[2])!=0) &&
          (strcmp("receiver",   argv[2])!=0)  )  ) {
-            printf("Usage:\tnserial SerialPort transmitter|receiver\n\tex: nserial /dev/ttyS1 transmitter\n");
+            printf("Usage:\tnserial SerialPort transmitter|receiver maxInformationFieldSize\n\tex: nserial /dev/ttyS1 transmitter 256\n");
             exit(1);
     }
 
@@ -26,6 +26,12 @@ int main(int argc, char** argv)
 
     if ( strcmp("receiver", argv[2]) == 0 )
         role = RECEIVER;
+
+    linkLayerConf.maxInformationSize = atoi(argv[3]);
+    linkLayerConf.frameSize = linkLayerConf.maxInformationSize + BASE_FRAME_SIZE;
+    linkLayerConf.frameBCC2Index = FBCC2(linkLayerConf.maxInformationSize);
+    linkLayerConf.frameTrailerIndex = FTRAILER(linkLayerConf.maxInformationSize);
+    printf("maxInfoSize: %lu\n", linkLayerConf.maxInformationSize);
     
     int fd;
 

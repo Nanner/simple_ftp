@@ -2,6 +2,8 @@
 #define _SUPERVISIONFRAME_H
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define MAX_INFO_LENGTH 256
 
@@ -14,24 +16,24 @@
 
 #define FRAMEFLAG 0x7E
 
-typedef struct {
-    char frameHeader;
-    char address;
-    char control;
-    char information[MAX_INFO_LENGTH];
-    char bcc1;
-    char bcc2;
-    char frameTrailer;
-} Frame;
+#define BASE_FRAME_SIZE 6
+#define FHEADER 0
+#define FADDRESS 1
+#define FCONTROL 2
+#define FBCC1 3
+#define FDATA 4
+#define FBCC2(dataSize) 4 + dataSize
+#define FTRAILER(dataSize) 5 + dataSize
 
-Frame createSupervisionFrame(char address, char control);
-Frame createInfoFrame(char address, char control, char information[], int infoLength);
+char* createSupervisionFrame(char address, char control, size_t maxInformationSize);
+char* createInfoFrame(char address, char control, char information[], size_t infoLength, size_t maxInformationSize);
 
-int copyInfo(char destination[MAX_INFO_LENGTH], char source[], unsigned int length);
+int copyInfo(char* destinationFrame, char source[], size_t length, size_t maxInformationSize);
+void getInfo(char* frame, char destination[], size_t length);
 
 char createBCC1(char address, char control);
-char createBCC2(char information[MAX_INFO_LENGTH]);
-int validBCC1(Frame frame);
-int validBCC2(Frame frame);
+char createBCC2(char information[], size_t maxInformationSize);
+int validBCC1(char* frame);
+int validBCC2(char* frame, size_t maxInformationSize);
 
 #endif

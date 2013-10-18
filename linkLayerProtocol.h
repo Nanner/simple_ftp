@@ -31,6 +31,11 @@ typedef struct {
     unsigned int sequenceNumber;
     unsigned int timeout;
     unsigned int numTransmissions;
+    struct termios oldtio;
+    size_t maxInformationSize;
+    size_t frameSize;
+    unsigned int frameBCC2Index;
+    unsigned int frameTrailerIndex;
 } LinkLayer;
 
 extern LinkLayer linkLayerConf;
@@ -41,13 +46,17 @@ int llopen(int port, int role);
 
 int llclose(int fd);
 
+int setLink();
+
+int waitForLink();
+
 int llread(int fd, char * buffer);
 
 int llwrite(int fd, char * buffer, int length);
 
-int toPhysical(Frame* frame);
+int toPhysical(char* frame);
 
-int fromPhysical(Frame* frame, int exitOnTimeout);
+int fromPhysical(char* frame, int exitOnTimeout);
 
 void timeout();
 
