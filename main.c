@@ -57,7 +57,7 @@ int main(int argc, char** argv)
                 break;
         }
 
-        //disconnect();
+        closeLink();
     }
     else if(role == RECEIVER && fd != -1) {
         int numberOfPackets = 4; //TODO temporary, this needs to be figured out from the packets themselves, I think
@@ -66,15 +66,16 @@ int main(int argc, char** argv)
         for(; i < numberOfPackets; i++) {
             char* string = malloc(256);
             int res = receivePacket(string, 256);
-            if(res != -1)
+            if(res == -5)
+                printf("Link was closed unexpectedly");
+            else if(res != -1)
                 printf("Received %d bytes: %s\n", res, string);
             else
                 printf("Reception failed\n");
         }
 
+        waitCloseLink();
     }
-
-    llclose(fd);
     
     return 0;
 }

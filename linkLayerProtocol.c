@@ -94,7 +94,7 @@ int llclose(int fd) {
 }
 
 int setLink() {
-    return(sendCommand(SET, UA, linkLayerConf.sendTimeout, linkLayerConf.numTransmissions));
+    return(sendCommand(SET, UA, linkLayerConf.sendTimeout, linkLayerConf.numTransmissions, RECEIVER_ADDRESS));
 }
 
 int waitForLink() {
@@ -102,23 +102,23 @@ int waitForLink() {
     int res = receiveCommand(&command, linkLayerConf.receiveTimeout);
     printf("Command: %d\nRes: %d\n", command, res);
     if(command == SET && res != -1) {
-        return(sendResponse(UA));
+        return(sendResponse(UA, RECEIVER_ADDRESS));
     }
 
     return -1;
 }
 
 int closeLink() {
-    if(sendCommand(DISC, DISC, linkLayerConf.sendTimeout, linkLayerConf.numTransmissions) == 0)
-        return(sendResponse(UA));
+    if(sendCommand(DISC, DISC, linkLayerConf.sendTimeout, linkLayerConf.numTransmissions, RECEIVER_ADDRESS) == 0)
+        sendResponse(UA, SENDER_ADDRESS);
 
-    return -1;
+    printf("Closing link.\n");
+    return(llclose(applicationLayerConf.fileDescriptor));
 }
 
 int waitCloseLink() {
     char command;
     int res = receiveCommand(&command, linkLayerConf.receiveTimeout);
-    printf("Command: %d\nRes: %d\n", command, res);
     if(command == DISC && res != -1) {
         return(confirmCloseLink());
     }
@@ -127,8 +127,10 @@ int waitCloseLink() {
 }
 
 int confirmCloseLink() {
-    if(sendCommand(DISC, UA, linkLayerConf.receiveTimeout, 1) == 0)
+    if(sendCommand(DISC, UA, linkLayerConf.receiveTimeout, 1, SENDER_ADDRESS) == 0) {
+        printf("Closing link.\n");
         return(llclose(applicationLayerConf.fileDescriptor));
+    }
 
     return -1;
 }
@@ -219,7 +221,7 @@ int receiveCommand(char* command, int tryTimeout) {
     return -1;
 }
 
-int sendCommand(char command, char expectedResponse, int tryTimeout, int retries) {
+int sendCommand(char command, char expectedResponse, int tryTimeout, int retries, char address) {
 
     // install timeout handler
     struct sigaction sa;
@@ -227,7 +229,8 @@ int sendCommand(char command, char expectedResponse, int tryTimeout, int retries
     sa.sa_flags = 0;
     sigaction(SIGALRM, &sa, NULL);
 
-    char* frame = createSupervisionFrame(RECEIVER_ADDRESS, command, linkLayerConf.maxInformationSize);
+
+    char* frame = createSupervisionFrame(address, command, linkLayerConf.maxInformationSize);
     int responseResult;
 
     retryCounter = 0;
@@ -264,11 +267,11 @@ int receiveResponse(char response, int currentTry) {
     int res = 0;
     char* receivedFrame = malloc(linkLayerConf.frameSize);
     while (retryCounter == currentTry) {
-        printf("Waiting for UA\n");
+        printf("Waiting for response\n");
         res = fromPhysical(receivedFrame, 1);
         if(res != -1) {
             int errorCheckResult = checkForErrors(receivedFrame, linkLayerConf.maxInformationSize, applicationLayerConf.status);
-            if (errorCheckResult == 0){
+            if (errorCheckResult == 0) {
                 if (receivedFrame[FCONTROL] == response) {
                     alarm(0);
                     return 0;
@@ -285,8 +288,8 @@ int receiveResponse(char response, int currentTry) {
     return -1;
 }
 
-int sendResponse(char response) {
-    char* confirmationFrame = createSupervisionFrame(RECEIVER_ADDRESS, response, linkLayerConf.maxInformationSize);
+int sendResponse(char response, char address) {
+    char* confirmationFrame = createSupervisionFrame(address, response, linkLayerConf.maxInformationSize);
     int res = toPhysical(confirmationFrame);
     printf("Sending %d bytes: %x %x %x %x %x\n", res, confirmationFrame[FHEADERFLAG], confirmationFrame[FADDRESS], confirmationFrame[FCONTROL], confirmationFrame[FBCC1], confirmationFrame[linkLayerConf.frameTrailerIndex]);
     free(confirmationFrame);
@@ -454,7 +457,6 @@ void stuffFrame(char* destuffedFrame, char* stuffedFrame, size_t frameSize, size
             stuffedFrame[currentStuffedByte] = ESCAPE_BYTE;
             currentStuffedByte++;
             stuffedFrame[currentStuffedByte] = ESCAPED_FLAG;
-            printf("Found a flag byte\n");
         }
         else if(destuffedFrame[currentDestuffedByte] == ESCAPE_BYTE) {
             stuffedFrame[currentStuffedByte] = ESCAPE_BYTE;
@@ -491,7 +493,6 @@ void destuffFrame(char* stuffedFrame, char* destuffedFrame, size_t frameSize) {
         if(stuffedFrame[currentStuffedByte] == ESCAPE_BYTE) {
             currentStuffedByte++;
             destuffedFrame[currentDestuffedByte] = stuffedFrame[currentStuffedByte] ^ XOR_BYTE;
-            printf("Found an escape byte\n");
         }
         else
             destuffedFrame[currentDestuffedByte] = stuffedFrame[currentStuffedByte];

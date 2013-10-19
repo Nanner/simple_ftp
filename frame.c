@@ -112,7 +112,7 @@ int checkForErrors(char* frame, size_t maxInformationSize, int role) {
 		return FRAME_HEADER_ERROR;
 	else if(role == RECEIVER && commandFrame && frame[FADDRESS] != RECEIVER_ADDRESS)
 		return FRAME_HEADER_ERROR;
-	else if(role == RECEIVER && !commandFrame && frame[FADDRESS != SENDER_ADDRESS])
+	else if(role == RECEIVER && !commandFrame && frame[FADDRESS] != SENDER_ADDRESS)
 		return FRAME_HEADER_ERROR;
 
 	//Check BCCs
