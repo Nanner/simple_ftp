@@ -57,11 +57,14 @@ int main(int argc, char** argv)
         int numberOfPackets = 4; //TODO temporary, this needs to be figured out from the packets themselves, I think
 
         unsigned int i = 0;
-        for(; i < numberOfPackets; i++) {
+        //for(; i < numberOfPackets; i++) {
             char* string = malloc(256);
-            //receivePacket(string);
-            //printf("Received: %s\n", string);
-        }
+            int res = receivePacket(string, 256);
+            if(res != -1)
+                printf("Received %d bytes: %s\n", res, string);
+            else
+                printf("Reception failed\n");
+        //}
 
     }
 

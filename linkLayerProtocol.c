@@ -59,6 +59,21 @@ int llopen(int port, int role){
             printf("Failed to set link, connection timed out.\n");
             break;
        }
+
+       /* TODO this is test gibberish, delete later
+       sleep(2);
+       char* testString =  "test frame is here!!";
+       char* testFrame = createInfoFrame(RECEIVER_ADDRESS, linkLayerConf.sequenceNumber, testString, strlen(testString) + 1, linkLayerConf.maxInformationSize);
+       
+       char info[linkLayerConf.maxInformationSize];
+        memcpy(info, &testFrame[FDATA], linkLayerConf.maxInformationSize);
+        printf("Info: %s\n", info);
+        printf("Obtained bcc2: %x\n", createBCC2(info, linkLayerConf.maxInformationSize));
+        printf("Frame bcc2: %x\n", testFrame[FBCC2(linkLayerConf.maxInformationSize)]);
+        printf("Info size: %d", strlen(info));
+
+       toPhysical(testFrame);
+       */
     }
 
     if (role == RECEIVER)
@@ -109,14 +124,9 @@ int setLink() {
 
         if (retryCounter > 0)
             printf("Retry #%d\n", retryCounter);
+
         printf("Sending: %x %x %x %x %x\n", frame[FHEADERFLAG], frame[FADDRESS], frame[FCONTROL], frame[FBCC1], frame[linkLayerConf.frameTrailerIndex]);
-        int res;
-        if(retryCounter == 2)
-            res = toPhysical(frame);
-        else {
-            char* gibberishFrame = createSupervisionFrame(SENDER_ADDRESS, SET, linkLayerConf.maxInformationSize);
-            res = toPhysical(gibberishFrame);
-        }
+        int res = toPhysical(frame);
         printf("%d bytes sent\n", res);
 
         alarm(linkLayerConf.timeout);
@@ -146,10 +156,15 @@ int setLink() {
 
     if (STOP == TRUE) {
         printf("\nReceived:\n%x %x %x %x %x\n", receivedFrame[FHEADERFLAG], receivedFrame[FADDRESS], receivedFrame[FCONTROL], receivedFrame[FBCC1], receivedFrame[linkLayerConf.frameTrailerIndex]);
+        free(frame);
+        free(receivedFrame);
         return 0;
     }
-    else
+    else {
+        free(frame);
+        free(receivedFrame);
         return -1;
+    }
 }
 
 int waitForLink() {
@@ -162,24 +177,6 @@ int waitForLink() {
 
     char* receivedFrame = malloc(linkLayerConf.frameSize);
 
-    /*alarm(SET_UA_TIMEOUT);
-    if(fromPhysical(receivedFrame, 1) != -1) {
-        printf("\nReceived:\n%x %x %x %x %x\n", receivedFrame[FHEADERFLAG], receivedFrame[FADDRESS], receivedFrame[FCONTROL], receivedFrame[FBCC1], receivedFrame[linkLayerConf.frameTrailerIndex]);
-        int errorCheckResult = checkForErrors(receivedFrame, linkLayerConf.maxInformationSize, applicationLayerConf.status);
-        printf("Error: %d\n", errorCheckResult);
-        if(errorCheckResult == 0 && receivedFrame[FCONTROL] == SET) {
-            char* confirmationFrame = createSupervisionFrame(RECEIVER_ADDRESS, UA, linkLayerConf.maxInformationSize);
-            int res = toPhysical(confirmationFrame);
-            printf("Sending %d bytes: %x %x %x %x %x\n", res, confirmationFrame[FHEADERFLAG], confirmationFrame[FADDRESS], confirmationFrame[FCONTROL], confirmationFrame[FBCC1], confirmationFrame[linkLayerConf.frameTrailerIndex]);
-            return 0;
-        }
-        else
-            return -1;
-    }
-    else {
-        return -1; 
-    }*/
-
     alarm(SET_UA_TIMEOUT);
     while (retryCounter < 1) {
         if(fromPhysical(receivedFrame, 1) != -1) {
@@ -191,14 +188,14 @@ int waitForLink() {
                 char* confirmationFrame = createSupervisionFrame(RECEIVER_ADDRESS, UA, linkLayerConf.maxInformationSize);
                 int res = toPhysical(confirmationFrame);
                 printf("Sending %d bytes: %x %x %x %x %x\n", res, confirmationFrame[FHEADERFLAG], confirmationFrame[FADDRESS], confirmationFrame[FCONTROL], confirmationFrame[FBCC1], confirmationFrame[linkLayerConf.frameTrailerIndex]);
+                free(receivedFrame);
+                free(confirmationFrame);
                 return 0;
-            }
-            else {
-                printf("received gibberish\n");
             }
         }
     }
 
+    free(receivedFrame);
     return -1;
 }
 
@@ -256,8 +253,67 @@ int fromPhysical(char* frame, int exitOnTimeout) {
     return curchar;
 }
 
-int receivePacket(char* packet) {
+int receivePacket(char* packet, size_t packetLength) {
+    //TODO maybe accept receiving a DISC here?
     char* receivedFrame = malloc(linkLayerConf.frameSize);
-    fromPhysical(receivedFrame, 0);
-}
 
+    alarm(RECEIVE_INFO_TIMEOUT);
+    int receivedNewPacket = 0;
+    int res;
+    while(!receivedNewPacket && retryCounter < 1) {
+        printf("Trying to receive new packet...\n");
+        res = fromPhysical(receivedFrame, 1);
+        if(res != -1) {
+            int errorCheckResult = checkForErrors(receivedFrame, linkLayerConf.maxInformationSize, applicationLayerConf.status);
+
+            if(errorCheckResult == 0) {
+                printf("No errors found in this frame...\n");
+                //If we received the expected frame
+                if(receivedFrame[FCONTROL] == linkLayerConf.sequenceNumber) {
+                    linkLayerConf.sequenceNumber ^= INFO_1;
+                    getInfo(receivedFrame, packet, packetLength);
+                    receivedNewPacket = 1;
+                }
+
+                unsigned int rr;
+                if(linkLayerConf.sequenceNumber == INFO_0)
+                    rr = RR_0;
+                else
+                    rr = RR_1;
+                char* rrFrame = createSupervisionFrame(RECEIVER_ADDRESS, rr, linkLayerConf.maxInformationSize);
+                toPhysical(rrFrame);
+            }
+            else if(errorCheckResult == FRAME_INFO_ERROR) {
+                printf("Found info error in this frame...\nFrame BCC2: %x\n", receivedFrame[FBCC2(linkLayerConf.maxInformationSize)]);
+                //If this was the expected frame, we want to reject it so that the sender can resend the frame earlier
+                if(receivedFrame[FCONTROL] == linkLayerConf.sequenceNumber) {
+                    unsigned int rej;
+                    if(linkLayerConf.sequenceNumber == INFO_0)
+                        rej = REJ_0;
+                    else
+                        rej = REJ_1;
+                    char* rejFrame = createSupervisionFrame(RECEIVER_ADDRESS, rej, linkLayerConf.maxInformationSize);
+                    toPhysical(rejFrame);
+                }
+                //If this was a repeated frame, we want to send an rr so that the sender resends the frame earlier
+                else {
+                    unsigned int rr;
+                    if(linkLayerConf.sequenceNumber == INFO_0)
+                        rr = RR_0;
+                    else
+                        rr = RR_1;
+                    char* rrFrame = createSupervisionFrame(RECEIVER_ADDRESS, rr, linkLayerConf.maxInformationSize);
+                    toPhysical(rrFrame);
+                }
+            }
+        }
+
+    }
+
+    if(receivedNewPacket) {
+        printf("Received: %s\n", packet);
+        return res;
+    }
+    else
+        return -1;
+}

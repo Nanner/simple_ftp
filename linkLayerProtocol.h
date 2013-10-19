@@ -1,6 +1,18 @@
 #ifndef _LINKLAYERPROTOCOL_H
 #define _LINKLAYERPROTOCOL_H
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <termios.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include "frame.h"
+#include "applicationLayer.h"
+
 #define TRANSMITTER 1
 #define RECEIVER 0
 
@@ -14,18 +26,7 @@
 #define TRUE 1
 
 #define SET_UA_TIMEOUT 10
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
-#include "frame.h"
-#include "applicationLayer.h"
+#define RECEIVE_INFO_TIMEOUT 10
 
 typedef struct {
     char port[20];
@@ -48,9 +49,9 @@ int llopen(int port, int role);
 
 int llclose(int fd);
 
-int receivePacket(char* packet);
+int receivePacket(char* packet, size_t packetLength);
 
-int sendPacket(char* packet);
+int sendPacket(char* packet, size_t packetLength);
 
 int setLink();
 

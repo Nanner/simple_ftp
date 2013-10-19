@@ -26,7 +26,7 @@ char* createInfoFrame(char address, char control, char information[], size_t inf
 		frame[FDATA + i] = 0;
 
 	copyInfo(frame, information, infoLength, maxInformationSize);
-	frame[FBCC2(maxInformationSize)] = createBCC2(information, maxInformationSize);
+	frame[FBCC2(maxInformationSize)] = createBCC2(information, infoLength);
 
 	return frame;
 }
@@ -71,6 +71,10 @@ int validBCC1(char* frame) {
 int validBCC2(char* frame, size_t maxInformationSize) {
 	char info[maxInformationSize];
 	memcpy(info, &frame[FDATA], maxInformationSize);
+	printf("Info: %s\n", info);
+	printf("Obtained bcc2: %x\n", createBCC2(info, maxInformationSize));
+	printf("Frame bcc2: %x\n", frame[FBCC2(maxInformationSize)]);
+	printf("Info size: %d", strlen(info));
 	return(createBCC2(info, maxInformationSize) == frame[FBCC2(maxInformationSize)]);
 }
 
