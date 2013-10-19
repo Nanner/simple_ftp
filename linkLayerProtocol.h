@@ -38,7 +38,8 @@ typedef struct {
     char port[20];
     int baudRate;
     unsigned int sequenceNumber;
-    unsigned int timeout;
+    unsigned int sendTimeout;
+    unsigned int receiveTimeout;
     unsigned int numTransmissions;
     struct termios oldtio;
     size_t maxInformationSize;
@@ -63,9 +64,23 @@ int receivePacket(char* packet, size_t packetLength);
 
 int sendPacket(char* packet, size_t packetLength);
 
+int receiveCommand(char* command, int tryTimeout);
+
+int sendCommand(char command, char expectedResponse, int tryTimeout, int retries);
+
+int receiveResponse(char response, int currentTry);
+
+int sendResponse(char response);
+
 int setLink();
 
 int waitForLink();
+
+int closeLink();
+
+int waitCloseLink();
+
+int confirmCloseLink();
 
 //int llread(int fd, char * buffer); //Might be the same as fromPhysical
 
