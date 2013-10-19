@@ -28,6 +28,12 @@
 #define SET_UA_TIMEOUT 10
 #define RECEIVE_INFO_TIMEOUT 10
 
+//Byte stuffing codes
+#define ESCAPE_BYTE 0x7D
+#define ESCAPED_FLAG 0x5E
+#define ESCAPED_ESCAPE 0x5D
+#define XOR_BYTE 0x20
+
 typedef struct {
     char port[20];
     int baudRate;
@@ -44,6 +50,10 @@ typedef struct {
 extern LinkLayer linkLayerConf;
 
 extern int retryCounter;
+
+void stuffFrame(char* destuffedFrame, char* stuffedFrame, size_t frameSize, size_t maxInformationSize);
+
+void destuffFrame(char* stuffedFrame, char* destuffedFrame, size_t frameSize);
 
 int llopen(int port, int role);
 

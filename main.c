@@ -27,7 +27,7 @@ int main(int argc, char** argv)
     if ( strcmp("receiver", argv[2]) == 0 )
         role = RECEIVER;
 
-    linkLayerConf.maxInformationSize = atoi(argv[3]);
+    linkLayerConf.maxInformationSize = atoi(argv[3]) * 2 + 4;
     linkLayerConf.frameSize = linkLayerConf.maxInformationSize + BASE_FRAME_SIZE;
     linkLayerConf.frameBCC2Index = FBCC2(linkLayerConf.maxInformationSize);
     linkLayerConf.frameTrailerIndex = FTRAILERFLAG(linkLayerConf.maxInformationSize);
@@ -42,21 +42,23 @@ int main(int argc, char** argv)
     fd = llopen(port, role);
     //TODO main receiving/sending loop
 
-    if(role == TRANSMITTER) {
+    if(role == TRANSMITTER && fd != -1) {
         //TODO these will be changed by the application layer later on, not fixed
         int numberOfPackets = 4;
-        char packetArray[4][256] = {"cookies", "chocolate", "chocolatefruitsareamazingstuffdude", "annoyinglastpacket"};
+        char packetArray[4][256] = {"cookies", "chocolate", "chocolate~fruits~are~amazing~stuff~dude", "annoying}last}packet"};
 
         unsigned int i = 0;
         for(; i < numberOfPackets; i++) {
             printf("Sending packet %d\n", i);
             if(sendPacket(packetArray[i], 256) != -1)
                 printf("Sent packet %d\n", i);
+            else
+                break;
         }
 
         //disconnect();
     }
-    else if(role == RECEIVER) {
+    else if(role == RECEIVER && fd != -1) {
         int numberOfPackets = 4; //TODO temporary, this needs to be figured out from the packets themselves, I think
 
         unsigned int i = 0;

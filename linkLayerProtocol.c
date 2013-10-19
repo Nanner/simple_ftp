@@ -57,6 +57,7 @@ int llopen(int port, int role){
             break;
         case -1:
             printf("Failed to set link, connection timed out.\n");
+            return -1;
             break;
        }
 
@@ -87,6 +88,7 @@ int llopen(int port, int role){
             break;
         case -1:
             printf("Failed to set link, connection timed out.\n");
+            return -1;
             break;
        }
     }
@@ -255,6 +257,7 @@ int fromPhysical(char* frame, int exitOnTimeout) {
 
 int receivePacket(char* packet, size_t packetLength) {
     //TODO maybe accept receiving a DISC here?
+    char* receivedStuffedFrame = malloc(linkLayerConf.frameSize);
     char* receivedFrame = malloc(linkLayerConf.frameSize);
 
     alarm(RECEIVE_INFO_TIMEOUT);
@@ -262,14 +265,19 @@ int receivePacket(char* packet, size_t packetLength) {
     int res;
     while(!receivedNewPacket && retryCounter < 1) {
         printf("Trying to receive new packet...\n");
-        res = fromPhysical(receivedFrame, 1);
+        res = fromPhysical(receivedStuffedFrame, 1);
         if(res != -1) {
+            printf("Destuffing frame...\n");
+            destuffFrame(receivedStuffedFrame, receivedFrame, linkLayerConf.frameSize);
+            printf("Frame destuffed\n");
+            free(receivedStuffedFrame);
             int errorCheckResult = checkForErrors(receivedFrame, linkLayerConf.maxInformationSize, applicationLayerConf.status);
 
             if(errorCheckResult == 0) {
                 printf("No errors found in this frame...\n");
                 //If we received the expected frame
                 if(receivedFrame[FCONTROL] == linkLayerConf.sequenceNumber) {
+                    printf("It's a new packet!\n");
                     linkLayerConf.sequenceNumber ^= INFO_1;
                     getInfo(receivedFrame, packet, packetLength);
                     receivedNewPacket = 1;
@@ -306,7 +314,11 @@ int receivePacket(char* packet, size_t packetLength) {
                     toPhysical(rrFrame);
                 }
             }
+            else
+                printf("Frame messed up\n");
         }
+        else
+            printf("Timed out\n");
 
     }
 
@@ -323,14 +335,17 @@ int sendPacket(char* packet, size_t packetLength) {
         printf("Packet is too big for defined information field size!\n");
 
     }
-    char* frame = createInfoFrame(RECEIVER_ADDRESS, linkLayerConf.sequenceNumber, packet, packetLength, linkLayerConf.maxInformationSize);
+    char* destuffedFrame = createInfoFrame(RECEIVER_ADDRESS, linkLayerConf.sequenceNumber, packet, packetLength, linkLayerConf.maxInformationSize);
+    char* frame = malloc(linkLayerConf.frameSize);
+    printf("This BCC2: %x\n", destuffedFrame[FBCC2(linkLayerConf.maxInformationSize)]);
+    stuffFrame(destuffedFrame, frame, linkLayerConf.frameSize, linkLayerConf.maxInformationSize);
+    free(destuffedFrame);
 
     int STOP=FALSE;
     char* receivedFrame = malloc(linkLayerConf.frameSize);
     int res;
     retryCounter = 0;
 
-    int currentTry = retryCounter;
     int sendNextRR, resendRR, expectedREJ;
     if(linkLayerConf.sequenceNumber == INFO_0) {
         sendNextRR = RR_1;
@@ -353,6 +368,7 @@ int sendPacket(char* packet, size_t packetLength) {
 
         alarm(linkLayerConf.timeout);
         int receivedResend = 0;
+        int currentTry = retryCounter;
 
         while (STOP == FALSE && retryCounter == currentTry && !receivedResend) {
             printf("Waiting for acknowledgement...\n");
@@ -395,4 +411,60 @@ int sendPacket(char* packet, size_t packetLength) {
         return -1;
     }
 
+}
+
+void stuffFrame(char* destuffedFrame, char* stuffedFrame, size_t frameSize, size_t maxInformationSize) {
+    unsigned int currentDestuffedByte = 1;
+    unsigned int currentStuffedByte = 1;
+
+    stuffedFrame[0] = FRAMEFLAG;
+    stuffedFrame[frameSize - 1] = FRAMEFLAG;
+
+    for(; currentStuffedByte < frameSize - 1; currentDestuffedByte++, currentStuffedByte++) {
+        if(destuffedFrame[currentDestuffedByte] == FRAMEFLAG) {
+            stuffedFrame[currentStuffedByte] = ESCAPE_BYTE;
+            currentStuffedByte++;
+            stuffedFrame[currentStuffedByte] = ESCAPED_FLAG;
+            printf("Found a flag byte\n");
+        }
+        else if(destuffedFrame[currentDestuffedByte] == ESCAPE_BYTE) {
+            stuffedFrame[currentStuffedByte] = ESCAPE_BYTE;
+            currentStuffedByte++;
+            stuffedFrame[currentStuffedByte] = ESCAPED_ESCAPE;
+        }
+        else {
+            stuffedFrame[currentStuffedByte] = destuffedFrame[currentDestuffedByte];
+        }
+    }
+
+    unsigned int bcc2Position = FBCC2(maxInformationSize);
+    if(destuffedFrame[bcc2Position] == FRAMEFLAG) {
+        stuffedFrame[bcc2Position - 1] = ESCAPE_BYTE;
+        stuffedFrame[bcc2Position] = ESCAPED_FLAG;
+    }
+    else if(destuffedFrame[bcc2Position] == ESCAPE_BYTE) {
+        stuffedFrame[bcc2Position - 1] = ESCAPE_BYTE;
+        stuffedFrame[bcc2Position] = ESCAPED_ESCAPE;
+    }
+    else {
+        stuffedFrame[bcc2Position] = destuffedFrame[bcc2Position];
+    }
+}
+
+void destuffFrame(char* stuffedFrame, char* destuffedFrame, size_t frameSize) {
+    unsigned int currentDestuffedByte = 1;
+    unsigned int currentStuffedByte = 1;
+
+    destuffedFrame[0] = FRAMEFLAG;
+    destuffedFrame[frameSize - 1] = FRAMEFLAG;
+
+    for(; currentStuffedByte < frameSize - 1; currentStuffedByte++, currentDestuffedByte++) {
+        if(stuffedFrame[currentStuffedByte] == ESCAPE_BYTE) {
+            currentStuffedByte++;
+            destuffedFrame[currentDestuffedByte] = stuffedFrame[currentStuffedByte] ^ XOR_BYTE;
+            printf("Found an escape byte\n");
+        }
+        else
+            destuffedFrame[currentDestuffedByte] = stuffedFrame[currentStuffedByte];
+    }
 }
