@@ -207,7 +207,11 @@ void timeout() {
 
 int toPhysical(char* frame) {
     tcflush(applicationLayerConf.fileDescriptor, TCIOFLUSH);
-    return write(applicationLayerConf.fileDescriptor, frame, linkLayerConf.frameSize);
+    char* stuffedFrame = malloc(linkLayerConf.frameSize);
+    stuffFrame(frame, stuffedFrame, linkLayerConf.frameSize, linkLayerConf.maxInformationSize);
+    int res = write(applicationLayerConf.fileDescriptor, stuffedFrame, linkLayerConf.frameSize);
+    free(stuffedFrame);
+    return res;
 }
 
 int fromPhysical(char* frame, int exitOnTimeout) {
@@ -251,13 +255,13 @@ int fromPhysical(char* frame, int exitOnTimeout) {
             return -1;
     }
 
-    memcpy(frame, receivedString, linkLayerConf.frameSize);
+    //memcpy(frame, receivedString, linkLayerConf.frameSize);
+    destuffFrame(receivedString, frame, linkLayerConf.frameSize);
     return curchar;
 }
 
 int receivePacket(char* packet, size_t packetLength) {
     //TODO maybe accept receiving a DISC here?
-    char* receivedStuffedFrame = malloc(linkLayerConf.frameSize);
     char* receivedFrame = malloc(linkLayerConf.frameSize);
 
     alarm(RECEIVE_INFO_TIMEOUT);
@@ -265,12 +269,8 @@ int receivePacket(char* packet, size_t packetLength) {
     int res;
     while(!receivedNewPacket && retryCounter < 1) {
         printf("Trying to receive new packet...\n");
-        res = fromPhysical(receivedStuffedFrame, 1);
+        res = fromPhysical(receivedFrame, 1);
         if(res != -1) {
-            printf("Destuffing frame...\n");
-            destuffFrame(receivedStuffedFrame, receivedFrame, linkLayerConf.frameSize);
-            printf("Frame destuffed\n");
-            free(receivedStuffedFrame);
             int errorCheckResult = checkForErrors(receivedFrame, linkLayerConf.maxInformationSize, applicationLayerConf.status);
 
             if(errorCheckResult == 0) {
@@ -335,11 +335,7 @@ int sendPacket(char* packet, size_t packetLength) {
         printf("Packet is too big for defined information field size!\n");
 
     }
-    char* destuffedFrame = createInfoFrame(RECEIVER_ADDRESS, linkLayerConf.sequenceNumber, packet, packetLength, linkLayerConf.maxInformationSize);
-    char* frame = malloc(linkLayerConf.frameSize);
-    printf("This BCC2: %x\n", destuffedFrame[FBCC2(linkLayerConf.maxInformationSize)]);
-    stuffFrame(destuffedFrame, frame, linkLayerConf.frameSize, linkLayerConf.maxInformationSize);
-    free(destuffedFrame);
+    char* frame = createInfoFrame(RECEIVER_ADDRESS, linkLayerConf.sequenceNumber, packet, packetLength, linkLayerConf.maxInformationSize);
 
     int STOP=FALSE;
     char* receivedFrame = malloc(linkLayerConf.frameSize);
