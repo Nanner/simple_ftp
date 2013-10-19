@@ -317,3 +317,82 @@ int receivePacket(char* packet, size_t packetLength) {
     else
         return -1;
 }
+
+int sendPacket(char* packet, size_t packetLength) {
+    if(packetLength > linkLayerConf.maxInformationSize) {
+        printf("Packet is too big for defined information field size!\n");
+
+    }
+    char* frame = createInfoFrame(RECEIVER_ADDRESS, linkLayerConf.sequenceNumber, packet, packetLength, linkLayerConf.maxInformationSize);
+
+    int STOP=FALSE;
+    char* receivedFrame = malloc(linkLayerConf.frameSize);
+    int res;
+    retryCounter = 0;
+
+    int currentTry = retryCounter;
+    int sendNextRR, resendRR, expectedREJ;
+    if(linkLayerConf.sequenceNumber == INFO_0) {
+        sendNextRR = RR_1;
+        resendRR = RR_0;
+        expectedREJ = REJ_0;
+    }
+    else {
+        sendNextRR = RR_0;
+        resendRR = RR_1;
+        expectedREJ = REJ_1;
+    }
+
+    while (retryCounter < linkLayerConf.numTransmissions) {
+
+        if (retryCounter > 0)
+            printf("Retry #%d\n", retryCounter);
+
+        res = toPhysical(frame);
+        printf("%d bytes sent\n", res);
+
+        alarm(linkLayerConf.timeout);
+        int receivedResend = 0;
+
+        while (STOP == FALSE && retryCounter == currentTry && !receivedResend) {
+            printf("Waiting for acknowledgement...\n");
+            res = fromPhysical(receivedFrame, 1);
+            if(res != -1) {
+                int errorCheckResult = checkForErrors(receivedFrame, linkLayerConf.maxInformationSize, applicationLayerConf.status);
+                if (errorCheckResult == 0){
+                    if (receivedFrame[FCONTROL] == sendNextRR) {
+                        alarm(0);
+                        printf("Received positive acknowledgement, send next frame\n");
+                        linkLayerConf.sequenceNumber ^= INFO_1;
+                        STOP = TRUE;
+                    } else if (receivedFrame[FCONTROL] == resendRR || receivedFrame[FCONTROL] == expectedREJ) { 
+                        printf("Asked for resend!\n");
+                        alarm(0);
+                        retryCounter = 0;
+                        receivedResend = 1;
+                    }
+                }
+                else {
+                    printf("Error in received frame!\n");
+                }
+            }
+        }
+        if(STOP == TRUE)
+            break;
+    }
+
+    if (STOP == TRUE) {
+        printf("Sent frame and received acknowledgement\n");
+        return res;
+        free(frame);
+        free(receivedFrame);
+        return 0;
+    }
+    else {
+        printf("Failed to receive acknowledgement\n");
+        free(frame);
+        free(receivedFrame);
+        return -1;
+    }
+
+}

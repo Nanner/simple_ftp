@@ -48,8 +48,11 @@ int main(int argc, char** argv)
         char packetArray[4][256] = {"cookies", "chocolate", "chocolatefruitsareamazingstuffdude", "annoyinglastpacket"};
 
         unsigned int i = 0;
-        for(; i < numberOfPackets; i++);
-            //sendPacket(packetArray[i]);
+        for(; i < numberOfPackets; i++) {
+            printf("Sending packet %d\n", i);
+            if(sendPacket(packetArray[i], 256) != -1)
+                printf("Sent packet %d\n", i);
+        }
 
         //disconnect();
     }
@@ -57,14 +60,14 @@ int main(int argc, char** argv)
         int numberOfPackets = 4; //TODO temporary, this needs to be figured out from the packets themselves, I think
 
         unsigned int i = 0;
-        //for(; i < numberOfPackets; i++) {
+        for(; i < numberOfPackets; i++) {
             char* string = malloc(256);
             int res = receivePacket(string, 256);
             if(res != -1)
                 printf("Received %d bytes: %s\n", res, string);
             else
                 printf("Reception failed\n");
-        //}
+        }
 
     }
 
