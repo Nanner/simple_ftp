@@ -30,7 +30,7 @@ int main(int argc, char** argv)
     linkLayerConf.maxInformationSize = atoi(argv[3]);
     linkLayerConf.frameSize = linkLayerConf.maxInformationSize + BASE_FRAME_SIZE;
     linkLayerConf.frameBCC2Index = FBCC2(linkLayerConf.maxInformationSize);
-    linkLayerConf.frameTrailerIndex = FTRAILER(linkLayerConf.maxInformationSize);
+    linkLayerConf.frameTrailerIndex = FTRAILERFLAG(linkLayerConf.maxInformationSize);
     printf("maxInfoSize: %lu\n", (unsigned long) linkLayerConf.maxInformationSize);
 
     //TODO this is temporary, we should ask the user to define this in the future
@@ -48,8 +48,8 @@ int main(int argc, char** argv)
         char packetArray[4][256] = {"cookies", "chocolate", "chocolatefruitsareamazingstuffdude", "annoyinglastpacket"};
 
         unsigned int i = 0;
-        for(; i < numberOfPackets; i++)
-            sendPacket(packetArray[i]);
+        for(; i < numberOfPackets; i++);
+            //sendPacket(packetArray[i]);
 
         //disconnect();
     }
@@ -59,8 +59,8 @@ int main(int argc, char** argv)
         unsigned int i = 0;
         for(; i < numberOfPackets; i++) {
             char* string = malloc(256);
-            receivePacket(string);
-            printf("Received: %s\n", string);
+            //receivePacket(string);
+            //printf("Received: %s\n", string);
         }
 
     }
