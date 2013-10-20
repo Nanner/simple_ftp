@@ -74,7 +74,7 @@ int validBCC2(char* frame, size_t maxInformationSize) {
 	printf("Info: %s\n", info);
 	printf("Obtained bcc2: %x\n", createBCC2(info, maxInformationSize));
 	printf("Frame bcc2: %x\n", frame[FBCC2(maxInformationSize)]);
-	printf("Info size: %d", strlen(info));
+	printf("Info size: %lu\n", strlen(info));
 	return(createBCC2(info, maxInformationSize) == frame[FBCC2(maxInformationSize)]);
 }
 
@@ -125,4 +125,8 @@ int checkForErrors(char* frame, size_t maxInformationSize, int role) {
 	}
 
 	return 0;
+}
+
+void flipbit(char* byte, unsigned bitNumber){
+    *byte ^= (1UL << bitNumber);
 }

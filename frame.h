@@ -56,4 +56,5 @@ int validBCC1(char* frame);
 int validBCC2(char* frame, size_t maxInformationSize);
 int checkForErrors(char* frame, size_t maxInformationSize, int role);
 
+void flipbit(char* byte, unsigned bitNumber);
 #endif
