@@ -189,7 +189,7 @@ int fromPhysical(char* frame, int exitOnTimeout) {
             return -1;
     }
 
-    destuffFrame(receivedString, frame, linkLayerConf.frameSize);
+    destuffFrame(receivedString, frame, linkLayerConf.frameSize, linkLayerConf.maxInformationSize);
     return curchar;
 }
 
@@ -452,6 +452,8 @@ void stuffFrame(char* destuffedFrame, char* stuffedFrame, size_t frameSize, size
     unsigned int currentDestuffedByte = 1;
     unsigned int currentStuffedByte = 1;
 
+    printf("Destuffed frame: %x %x %x %x %x %x\n", destuffedFrame[FHEADERFLAG], destuffedFrame[FADDRESS], destuffedFrame[FCONTROL], destuffedFrame[FBCC1], destuffedFrame[FBCC2(maxInformationSize)], destuffedFrame[linkLayerConf.frameTrailerIndex]);
+
     stuffedFrame[0] = FRAMEFLAG;
     stuffedFrame[frameSize - 1] = FRAMEFLAG;
 
@@ -483,16 +485,20 @@ void stuffFrame(char* destuffedFrame, char* stuffedFrame, size_t frameSize, size
     else {
         stuffedFrame[bcc2Position] = destuffedFrame[bcc2Position];
     }
+
+    printf("Stuffed frame: %x %x %x %x %x %x\n", stuffedFrame[FHEADERFLAG], stuffedFrame[FADDRESS], stuffedFrame[FCONTROL], stuffedFrame[FBCC1], stuffedFrame[FBCC2(maxInformationSize)], stuffedFrame[linkLayerConf.frameTrailerIndex]);
 }
 
-void destuffFrame(char* stuffedFrame, char* destuffedFrame, size_t frameSize) {
+void destuffFrame(char* stuffedFrame, char* destuffedFrame, size_t frameSize, size_t maxInformationSize) {
     unsigned int currentDestuffedByte = 1;
     unsigned int currentStuffedByte = 1;
+
+    printf("Stuffed frame: %x %x %x %x %x %x\n", stuffedFrame[FHEADERFLAG], stuffedFrame[FADDRESS], stuffedFrame[FCONTROL], stuffedFrame[FBCC1], stuffedFrame[FBCC2(linkLayerConf.maxInformationSize)], stuffedFrame[linkLayerConf.frameTrailerIndex]);
 
     destuffedFrame[0] = FRAMEFLAG;
     destuffedFrame[frameSize - 1] = FRAMEFLAG;
 
-    for(; currentStuffedByte < frameSize - 1; currentStuffedByte++, currentDestuffedByte++) {
+    for(; currentStuffedByte < frameSize - 3; currentStuffedByte++, currentDestuffedByte++) {
         if(stuffedFrame[currentStuffedByte] == ESCAPE_BYTE) {
             currentStuffedByte++;
             destuffedFrame[currentDestuffedByte] = stuffedFrame[currentStuffedByte] ^ XOR_BYTE;
@@ -500,4 +506,14 @@ void destuffFrame(char* stuffedFrame, char* destuffedFrame, size_t frameSize) {
         else
             destuffedFrame[currentDestuffedByte] = stuffedFrame[currentStuffedByte];
     }
+
+    unsigned long bcc2Position = FBCC2(maxInformationSize);
+    if(stuffedFrame[bcc2Position - 1] == ESCAPE_BYTE) {
+        destuffedFrame[bcc2Position] = stuffedFrame[bcc2Position] ^ XOR_BYTE;
+    }
+    else {
+        destuffedFrame[bcc2Position] = stuffedFrame[bcc2Position];
+    }
+
+    printf("Destuffed frame: %x %x %x %x %x %x\n", destuffedFrame[FHEADERFLAG], destuffedFrame[FADDRESS], destuffedFrame[FCONTROL], destuffedFrame[FBCC1], destuffedFrame[FBCC2(linkLayerConf.maxInformationSize)], destuffedFrame[linkLayerConf.frameTrailerIndex]);
 }

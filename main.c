@@ -47,7 +47,7 @@ int main(int argc, char** argv)
     if(role == TRANSMITTER && fd != -1) {
         //TODO these will be changed by the application layer later on, not fixed
         int numberOfPackets = 4;
-        char packetArray[4][256] = {"cookies", "chocolate", "chocolate~fruits~are~amazing~stuff~dude", "annoying}last}packet"};
+        char packetArray[4][256] = {"cookies", "choco}~late", "chocolate~fruits~are~amazing~stuff~dude", "annoying}last}packet"};
 
         unsigned int i = 0;
         for(; i < numberOfPackets; i++) {

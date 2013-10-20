@@ -55,7 +55,7 @@ extern int retryCounter;
 
 void stuffFrame(char* destuffedFrame, char* stuffedFrame, size_t frameSize, size_t maxInformationSize);
 
-void destuffFrame(char* stuffedFrame, char* destuffedFrame, size_t frameSize);
+void destuffFrame(char* stuffedFrame, char* destuffedFrame, size_t frameSize, size_t maxInformationSize);
 
 int llopen(int port, int role);
 
