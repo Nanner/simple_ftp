@@ -27,7 +27,8 @@ int main(int argc, char** argv)
     if ( strcmp("receiver", argv[2]) == 0 )
         role = RECEIVER;
 
-    linkLayerConf.maxInformationSize = atoi(argv[3]) * 2 + 4;
+    linkLayerConf.maxPacketSize = atoi(argv[3]);
+    linkLayerConf.maxInformationSize = linkLayerConf.maxPacketSize * 2 + 4;
     linkLayerConf.frameSize = linkLayerConf.maxInformationSize + BASE_FRAME_SIZE;
     linkLayerConf.frameBCC2Index = FBCC2(linkLayerConf.maxInformationSize);
     linkLayerConf.frameTrailerIndex = FTRAILERFLAG(linkLayerConf.maxInformationSize);
