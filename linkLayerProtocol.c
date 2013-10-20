@@ -141,6 +141,7 @@ void timeout() {
 
 int toPhysical(char* frame) {
     tcflush(applicationLayerConf.fileDescriptor, TCIOFLUSH);
+    printf("\nSending:\n%X %X %X %X %X\n", frame[FHEADERFLAG], frame[FADDRESS], frame[FCONTROL], frame[FBCC1], frame[linkLayerConf.frameTrailerIndex]);
     char* stuffedFrame = malloc(linkLayerConf.frameSize);
     stuffFrame(frame, stuffedFrame, linkLayerConf.frameSize, linkLayerConf.maxInformationSize);
     long result = write(applicationLayerConf.fileDescriptor, stuffedFrame, linkLayerConf.frameSize);
@@ -190,6 +191,7 @@ int fromPhysical(char* frame, int exitOnTimeout) {
     }
 
     destuffFrame(receivedString, frame, linkLayerConf.frameSize, linkLayerConf.maxInformationSize);
+    printf("\nReceived:\n%X %X %X %X %X\n", frame[FHEADERFLAG], frame[FADDRESS], frame[FCONTROL], frame[FBCC1], frame[linkLayerConf.frameTrailerIndex]);
     return curchar;
 }
 
