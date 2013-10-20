@@ -75,6 +75,7 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 			memcpy(fileNameReceived, &startPacket[FILENAME_INDEX(fileSizeSize)], fileNameSize);
 
 			printf("\nReceiving %s, Expected size: %lu\n\n", fileNameReceived, fileSizeReceived);
+			*fileSize = fileSizeReceived;
 			fileSizeLeft = fileSizeReceived;
 			file = malloc(fileSizeReceived);
 		}
@@ -236,7 +237,7 @@ int writeFile(char* fileBuffer, char* fileName, size_t fileSize) {
 		return -1;
 	}
 
-	int res = fwrite(fileBuffer, fileSize, 1, file);
+	int res = fwrite(fileBuffer, sizeof(char), fileSize, file);
 	fclose(file);
 	if(res == fileSize)
 		return 0;
