@@ -44,13 +44,13 @@
 #define FRAME_HEADER_ERROR -1
 #define FRAME_INFO_ERROR -2
 
-char* createSupervisionFrame(char address, char control, size_t maxInformationSize);
-char* createInfoFrame(char address, char control, char information[], size_t infoLength, size_t maxInformationSize);
+char* createSupervisionFrame(unsigned char address, unsigned char control, size_t maxInformationSize);
+char* createInfoFrame(unsigned char address, unsigned char control, char information[], size_t infoLength, size_t maxInformationSize);
 
 int copyInfo(char* destinationFrame, char source[], size_t length, size_t maxInformationSize);
 void getInfo(char* frame, char destination[], size_t length);
 
-char createBCC1(char address, char control);
+char createBCC1(unsigned char address, unsigned char control);
 char createBCC2(char information[], size_t maxInformationSize);
 int validBCC1(char* frame);
 int validBCC2(char* frame, size_t maxInformationSize);

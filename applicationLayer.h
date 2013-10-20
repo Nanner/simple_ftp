@@ -41,7 +41,7 @@ int sendFile(char* file, size_t fileSize, char* fileName);
 
 char* receiveFile(size_t* fileSize, char* fileName);
 
-char* createDataPacket(unsigned int sequenceNumber, size_t dataFieldLength, char* data);
+char* createDataPacket(unsigned char sequenceNumber, size_t dataFieldLength, char* data);
 
 char* createControlPacket(size_t* sizeOfPacket, char controlField, size_t fileSize, char* fileName);
 

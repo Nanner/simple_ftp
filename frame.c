@@ -2,7 +2,7 @@
 
 int retryCounter = 0;
 
-char* createSupervisionFrame(char address, char control, size_t maxInformationSize) {
+char* createSupervisionFrame(unsigned char address, unsigned char control, size_t maxInformationSize) {
 	char* frame = malloc(BASE_FRAME_SIZE + maxInformationSize);
 	frame[FHEADERFLAG] = FRAMEFLAG;
 	frame[FADDRESS] = address;
@@ -13,7 +13,7 @@ char* createSupervisionFrame(char address, char control, size_t maxInformationSi
 	return frame;
 }
 
-char* createInfoFrame(char address, char control, char information[], size_t infoLength, size_t maxInformationSize) {
+char* createInfoFrame(unsigned char address, unsigned char control, char information[], size_t infoLength, size_t maxInformationSize) {
 	char* frame = malloc(BASE_FRAME_SIZE + maxInformationSize);
 	frame[FHEADERFLAG] = FRAMEFLAG;
 	frame[FADDRESS] = address;
@@ -51,7 +51,7 @@ void getInfo(char* frame, char destination[], size_t length) {
 	}
 }
 
-char createBCC1(char address, char control) {
+char createBCC1(unsigned char address, unsigned char control) {
 	return address ^ control;
 }
 char createBCC2(char information[], size_t maxInformationSize) {

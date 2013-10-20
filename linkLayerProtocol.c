@@ -223,7 +223,7 @@ int receiveCommand(char* command, int tryTimeout) {
     return -1;
 }
 
-int sendCommand(char command, char expectedResponse, int tryTimeout, int retries, char address) {
+int sendCommand(unsigned char command, unsigned char expectedResponse, int tryTimeout, int retries, unsigned char address) {
 
     // install timeout handler
     struct sigaction sa;
@@ -290,7 +290,7 @@ int receiveResponse(char response, int currentTry) {
     return -1;
 }
 
-int sendResponse(char response, char address) {
+int sendResponse(unsigned char response, unsigned char address) {
     char* confirmationFrame = createSupervisionFrame(address, response, linkLayerConf.maxInformationSize);
     int res = toPhysical(confirmationFrame);
     printf("Sending %d bytes: %X %X %X %X %X\n", res, confirmationFrame[FHEADERFLAG], confirmationFrame[FADDRESS], confirmationFrame[FCONTROL], confirmationFrame[FBCC1], confirmationFrame[linkLayerConf.frameTrailerIndex]);
@@ -321,20 +321,20 @@ int receivePacket(char* packet, size_t packetLength) {
                     receivedNewPacket = 1;
                 }
 
-                unsigned int rr;
+                unsigned char rr;
                 if(linkLayerConf.sequenceNumber == INFO_0)
                     rr = RR_0;
                 else
                     rr = RR_1;
                 char* rrFrame = createSupervisionFrame(RECEIVER_ADDRESS, rr, linkLayerConf.maxInformationSize);
                 toPhysical(rrFrame);
-                free(rrFrame);
+                //free(rrFrame);
             }
             else if(errorCheckResult == FRAME_INFO_ERROR) {
                 printf("Found info error in this frame...\nFrame BCC2: %X\n", receivedFrame[FBCC2(linkLayerConf.maxInformationSize)]);
                 //If this was the expected frame, we want to reject it so that the sender can resend the frame earlier
                 if(receivedFrame[FCONTROL] == linkLayerConf.sequenceNumber) {
-                    unsigned int rej;
+                    unsigned char rej;
                     if(linkLayerConf.sequenceNumber == INFO_0)
                         rej = REJ_0;
                     else
@@ -345,7 +345,7 @@ int receivePacket(char* packet, size_t packetLength) {
                 }
                 //If this was a repeated frame, we want to send an rr so that the sender resends the frame earlier
                 else {
-                    unsigned int rr;
+                    unsigned char rr;
                     if(linkLayerConf.sequenceNumber == INFO_0)
                         rr = RR_0;
                     else
@@ -363,7 +363,7 @@ int receivePacket(char* packet, size_t packetLength) {
 
     }
 
-    free(receivedFrame);
+    //free(receivedFrame);
 
     if(receivedNewPacket) {
         printf("Received: %s\n", packet);
@@ -464,7 +464,7 @@ void stuffFrame(char* destuffedFrame, char* stuffedFrame, size_t frameSize, size
     stuffedFrame[0] = FRAMEFLAG;
     stuffedFrame[frameSize - 1] = FRAMEFLAG;
 
-    for(; currentStuffedByte < frameSize - 1; currentDestuffedByte++, currentStuffedByte++) {
+    for(; currentStuffedByte < frameSize - 2; currentDestuffedByte++, currentStuffedByte++) {
         if(destuffedFrame[currentDestuffedByte] == FRAMEFLAG) {
             stuffedFrame[currentStuffedByte] = ESCAPE_BYTE;
             currentStuffedByte++;
@@ -480,7 +480,7 @@ void stuffFrame(char* destuffedFrame, char* stuffedFrame, size_t frameSize, size
         }
     }
 
-    unsigned long bcc2Position = FBCC2(maxInformationSize);
+    unsigned int bcc2Position = FBCC2(maxInformationSize);
     if(destuffedFrame[bcc2Position] == FRAMEFLAG) {
         stuffedFrame[bcc2Position - 1] = ESCAPE_BYTE;
         stuffedFrame[bcc2Position] = ESCAPED_FLAG;
@@ -514,7 +514,7 @@ void destuffFrame(char* stuffedFrame, char* destuffedFrame, size_t frameSize, si
             destuffedFrame[currentDestuffedByte] = stuffedFrame[currentStuffedByte];
     }
 
-    unsigned long bcc2Position = FBCC2(maxInformationSize);
+    unsigned int bcc2Position = FBCC2(maxInformationSize);
     if(stuffedFrame[bcc2Position - 1] == ESCAPE_BYTE) {
         destuffedFrame[bcc2Position] = stuffedFrame[bcc2Position] ^ XOR_BYTE;
     }

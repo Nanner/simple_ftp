@@ -6,7 +6,7 @@ int sendFile(char* file, size_t fileSize, char* fileName) {
 		return -1;
 	}
 
-	if(strlen(fileName) > (applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t)) ) ) {
+	if(strlen(fileName) > (applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t)) ) || strlen(fileName) > 255) {
 		printf("The filename is too large!\n");
 		return -1;
 	}
@@ -59,7 +59,7 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 	//char* fileNameReceived;
 	size_t fileSizeReceived;
 	size_t fileSizeLeft;
-	unsigned int expectedSequence = 0;
+	unsigned char expectedSequence = 0;
 	unsigned int fileIndexToCopyTo = 0;
 	char* file;
 
@@ -67,8 +67,9 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 	if(receivePacket(startPacket, applicationLayerConf.maxPacketSize) != -1) {
 		if(startPacket[CONTROL_INDEX] == CONTROL_START) {
 			printf("Starting file reception.\n");
-			unsigned int fileSizeSize = startPacket[FILESIZE_SIZE_INDEX];
-			unsigned int fileNameSize = startPacket[FILENAME_SIZE_INDEX(fileSizeSize)];
+			//TODO maybe restric the fileName to unsigned char size
+			unsigned char fileSizeSize = startPacket[FILESIZE_SIZE_INDEX];
+			unsigned char fileNameSize = startPacket[FILENAME_SIZE_INDEX(fileSizeSize)];
 			//fileNameReceived = malloc(fileNameSize);
 			memcpy(&fileSizeReceived, &startPacket[FILESIZE_INDEX], fileSizeSize);
 			memcpy(fileNameReceived, &startPacket[FILENAME_INDEX(fileSizeSize)], fileNameSize);
@@ -89,8 +90,8 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 				transmissionOver = 1;
 			//TODO sequence number must be mod 255!!!
 			else if(packet[CONTROL_INDEX] == CONTROL_DATA && packet[SEQUENCE_INDEX] == expectedSequence) {
-				unsigned int l1 = packet[L1_INDEX];
-				unsigned int l2 = packet[L2_INDEX];
+				unsigned char l1 = packet[L1_INDEX];
+				unsigned char l2 = packet[L2_INDEX];
 				printf("Received l2: %u, l1: %u\n", l2, l1);
 				size_t dataSize = 256 * l2 + l1;
 
@@ -109,8 +110,8 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 		return NULL;
 }
 
-char* createDataPacket(unsigned int sequenceNumber, size_t dataFieldLength, char* data) {
-	unsigned int l1, l2;
+char* createDataPacket(unsigned char sequenceNumber, size_t dataFieldLength, char* data) {
+	unsigned char l1, l2;
 	l2 = dataFieldLength / 256;
 	l1 = dataFieldLength % 256;
 	printf("\nDataSize: %lu, L2: %u, L1: %u\n\n",dataFieldLength, l2, l1);
@@ -135,7 +136,7 @@ char* createControlPacket(size_t* sizeOfPacket, char controlField, size_t fileSi
 	controlPacket[1] = CONTROL_TYPE_FILESIZE;
 	controlPacket[2] = sizeof(size_t);
 	memcpy(&controlPacket[3], &fileSize, sizeof(size_t));
-	unsigned int nextIndex = 3 + sizeof(size_t);
+	unsigned char nextIndex = 3 + sizeof(size_t);
 	controlPacket[nextIndex] = CONTROL_TYPE_FILENAME;
 	nextIndex++;
 	controlPacket[nextIndex] = strlen(fileName);
@@ -149,8 +150,8 @@ int compareControlPackets(char* packet1, char* packet2) {
 	size_t packet1FileSize, packet2FileSize;
 	char* packet1FileName;
 	char* packet2FileName;
-	unsigned int sizeOfFileSizeParameter1 = packet1[FILESIZE_SIZE_INDEX];
-	unsigned int sizeOfFileSizeParameter2 = packet2[FILESIZE_SIZE_INDEX];
+	unsigned char sizeOfFileSizeParameter1 = packet1[FILESIZE_SIZE_INDEX];
+	unsigned char sizeOfFileSizeParameter2 = packet2[FILESIZE_SIZE_INDEX];
 
 	//If the first parameter type is the same and have the same length in both packets
 	if(packet1[1] == packet2[1] && sizeOfFileSizeParameter1 == sizeOfFileSizeParameter2) {

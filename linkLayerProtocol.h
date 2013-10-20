@@ -66,11 +66,11 @@ int sendPacket(char* packet, size_t packetLength);
 
 int receiveCommand(char* command, int tryTimeout);
 
-int sendCommand(char command, char expectedResponse, int tryTimeout, int retries, char address);
+int sendCommand(unsigned char command, unsigned char expectedResponse, int tryTimeout, int retries, unsigned char address);
 
 int receiveResponse(char response, int currentTry);
 
-int sendResponse(char response, char address);
+int sendResponse(unsigned char response, unsigned char address);
 
 int setLink();
 
