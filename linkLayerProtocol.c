@@ -326,6 +326,7 @@ int receivePacket(char* packet, size_t packetLength) {
                     rr = RR_1;
                 char* rrFrame = createSupervisionFrame(RECEIVER_ADDRESS, rr, linkLayerConf.maxInformationSize);
                 toPhysical(rrFrame);
+                free(rrFrame);
             }
             else if(errorCheckResult == FRAME_INFO_ERROR) {
                 printf("Found info error in this frame...\nFrame BCC2: %x\n", receivedFrame[FBCC2(linkLayerConf.maxInformationSize)]);
@@ -338,6 +339,7 @@ int receivePacket(char* packet, size_t packetLength) {
                         rej = REJ_1;
                     char* rejFrame = createSupervisionFrame(RECEIVER_ADDRESS, rej, linkLayerConf.maxInformationSize);
                     toPhysical(rejFrame);
+                    free(rejFrame);
                 }
                 //If this was a repeated frame, we want to send an rr so that the sender resends the frame earlier
                 else {
@@ -348,6 +350,7 @@ int receivePacket(char* packet, size_t packetLength) {
                         rr = RR_1;
                     char* rrFrame = createSupervisionFrame(RECEIVER_ADDRESS, rr, linkLayerConf.maxInformationSize);
                     toPhysical(rrFrame);
+                    free(rrFrame);
                 }
             }
             else
@@ -357,6 +360,8 @@ int receivePacket(char* packet, size_t packetLength) {
             printf("Timed out\n");
 
     }
+
+    free(receivedFrame);
 
     if(receivedNewPacket) {
         printf("Received: %s\n", packet);

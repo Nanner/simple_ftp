@@ -42,7 +42,6 @@ typedef struct {
     unsigned int receiveTimeout;
     unsigned int numTransmissions;
     struct termios oldtio;
-    size_t maxPacketSize;
     size_t maxInformationSize;
     size_t frameSize;
     unsigned long frameBCC2Index;

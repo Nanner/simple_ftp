@@ -27,8 +27,9 @@ int main(int argc, char** argv)
     if ( strcmp("receiver", argv[2]) == 0 )
         role = RECEIVER;
 
-    linkLayerConf.maxPacketSize = atoi(argv[3]);
-    linkLayerConf.maxInformationSize = linkLayerConf.maxPacketSize * 2 + 4;
+    applicationLayerConf.maxPacketSize = atoi(argv[3]);
+    applicationLayerConf.maxDataFieldSize = applicationLayerConf.maxPacketSize - BASE_DATA_PACKET_SIZE;
+    linkLayerConf.maxInformationSize = applicationLayerConf.maxPacketSize * 2 + 4;
     linkLayerConf.frameSize = linkLayerConf.maxInformationSize + BASE_FRAME_SIZE;
     linkLayerConf.frameBCC2Index = FBCC2(linkLayerConf.maxInformationSize);
     linkLayerConf.frameTrailerIndex = FTRAILERFLAG(linkLayerConf.maxInformationSize);
@@ -65,7 +66,7 @@ int main(int argc, char** argv)
     }
     else if(role == RECEIVER && fd != -1) {
         //char* gibberishFile = "I'm a test, a little little test, I wonder if this will work, this will probably not work, oh well. Spam.";
-        int numberOfPackets = 3; //TODO temporary, this needs to be figured out from the packets themselves, I think
+        /*int numberOfPackets = 3; //TODO temporary, this needs to be figured out from the packets themselves, I think
 
         unsigned int i = 0;
         for(; i < numberOfPackets; i++) {
@@ -83,7 +84,11 @@ int main(int argc, char** argv)
                 printf("Reception failed\n");
             
             free(string);
-        }
+        }*/
+        size_t size;
+        char fileName[applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t))];
+        char* file = receiveFile(&size, fileName);
+        printf("Received: %s\n", file);
 
         waitCloseLink();
     }
