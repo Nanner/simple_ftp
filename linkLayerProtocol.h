@@ -44,8 +44,8 @@ typedef struct {
     struct termios oldtio;
     size_t maxInformationSize;
     size_t frameSize;
-    unsigned int frameBCC2Index;
-    unsigned int frameTrailerIndex;
+    unsigned long frameBCC2Index;
+    unsigned long frameTrailerIndex;
 } LinkLayer;
 
 extern LinkLayer linkLayerConf;

@@ -118,8 +118,8 @@ int closeLink() {
 
 int waitCloseLink() {
     char command;
-    int res = receiveCommand(&command, linkLayerConf.receiveTimeout);
-    if(command == DISC && res != -1) {
+    int result = receiveCommand(&command, linkLayerConf.receiveTimeout);
+    if(command == DISC && result != -1) {
         return(confirmCloseLink());
     }
 
@@ -143,9 +143,9 @@ int toPhysical(char* frame) {
     tcflush(applicationLayerConf.fileDescriptor, TCIOFLUSH);
     char* stuffedFrame = malloc(linkLayerConf.frameSize);
     stuffFrame(frame, stuffedFrame, linkLayerConf.frameSize, linkLayerConf.maxInformationSize);
-    int res = write(applicationLayerConf.fileDescriptor, stuffedFrame, linkLayerConf.frameSize);
+    long result = write(applicationLayerConf.fileDescriptor, stuffedFrame, linkLayerConf.frameSize);
     free(stuffedFrame);
-    return res;
+    return (int) result;
 }
 
 int fromPhysical(char* frame, int exitOnTimeout) {
@@ -153,12 +153,12 @@ int fromPhysical(char* frame, int exitOnTimeout) {
     char receivedString[linkLayerConf.frameSize];
     char buf[linkLayerConf.frameSize];
     int STOP=FALSE;
-    int res = 0;
+    long result = 0;
     int currentTry = retryCounter;
 
     while (STOP==FALSE) {
-        res = read(applicationLayerConf.fileDescriptor,buf,1);
-        if(res == 1){
+        result = read(applicationLayerConf.fileDescriptor,buf,1);
+        if(result == 1){
             //If we are receiving the first byte, we want to make sure it's a frame header or a frame trailer before we start receiving the frame
             if(curchar == 0) {
                 if(buf[0] == FRAMEFLAG) {
@@ -395,6 +395,9 @@ int sendPacket(char* packet, size_t packetLength) {
         if (retryCounter > 0)
             printf("Retry #%d\n", retryCounter);
 
+        // TODO turn this on and get the party started
+        flipbit(&frame[FDATA], 2);
+        
         res = toPhysical(frame);
         printf("%d bytes sent\n", res);
 
@@ -468,7 +471,7 @@ void stuffFrame(char* destuffedFrame, char* stuffedFrame, size_t frameSize, size
         }
     }
 
-    unsigned int bcc2Position = FBCC2(maxInformationSize);
+    unsigned long bcc2Position = FBCC2(maxInformationSize);
     if(destuffedFrame[bcc2Position] == FRAMEFLAG) {
         stuffedFrame[bcc2Position - 1] = ESCAPE_BYTE;
         stuffedFrame[bcc2Position] = ESCAPED_FLAG;
