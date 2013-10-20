@@ -55,8 +55,8 @@ int sendFile(char* file, size_t fileSize, char* fileName) {
 
 char* receiveFile(size_t* fileSize, char* fileName) {
 	printf("Waiting to receive file...\n");
-	//char fileNameReceived[applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t))];
-	char* fileNameReceived;
+	char fileNameReceived[applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t))];
+	//char* fileNameReceived;
 	size_t fileSizeReceived;
 	size_t fileSizeLeft;
 	unsigned int expectedSequence = 0;
@@ -69,7 +69,7 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 			printf("Starting file reception.\n");
 			unsigned int fileSizeSize = startPacket[FILESIZE_SIZE_INDEX];
 			unsigned int fileNameSize = startPacket[FILENAME_SIZE_INDEX(fileSizeSize)];
-			fileNameReceived = malloc(fileNameSize);
+			//fileNameReceived = malloc(fileNameSize);
 			memcpy(&fileSizeReceived, &startPacket[FILESIZE_INDEX], fileSizeSize);
 			memcpy(fileNameReceived, &startPacket[FILENAME_INDEX(fileSizeSize)], fileNameSize);
 

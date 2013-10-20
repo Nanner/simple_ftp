@@ -58,8 +58,11 @@ int main(int argc, char** argv)
             else
                 break;
         }*/
-        char* gibberishFile = "I'm a test, a little little test, I wonder if this will work, this will probably not work, oh well. Spam.";
-        if(sendFile(gibberishFile, strlen(gibberishFile), "gibberishFile.txt") == 0)
+        char* fileName = "/home/nanner/virtualShared/pinguim.gif";
+        size_t fileSize;
+        char* file = readFile(fileName, &fileSize);
+        //char* gibberishFile = "I'm a test, a little little test, I wonder if this will work, this will probably not work, oh well. Spam.";
+        if(sendFile(file, fileSize, fileName) == 0)
             printf("Sent.");
 
         closeLink();

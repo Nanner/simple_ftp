@@ -206,7 +206,7 @@ int receiveCommand(char* command, int tryTimeout) {
     while (retryCounter < 1) {
         if(fromPhysical(receivedFrame, 1) != -1) {
 
-            printf("\nReceived:\n%x %x %x %x %x\n", receivedFrame[FHEADERFLAG], receivedFrame[FADDRESS], receivedFrame[FCONTROL], receivedFrame[FBCC1], receivedFrame[linkLayerConf.frameTrailerIndex]);
+            printf("\nReceived:\n%X %X %X %X %X\n", receivedFrame[FHEADERFLAG], receivedFrame[FADDRESS], receivedFrame[FCONTROL], receivedFrame[FBCC1], receivedFrame[linkLayerConf.frameTrailerIndex]);
             int errorCheckResult = checkForErrors(receivedFrame, linkLayerConf.maxInformationSize, applicationLayerConf.status);
 
             if(errorCheckResult == 0) {
@@ -240,7 +240,7 @@ int sendCommand(char command, char expectedResponse, int tryTimeout, int retries
         if (retryCounter > 0)
             printf("Retry #%d\n", retryCounter);
 
-        printf("Sending: %x %x %x %x %x\n", frame[FHEADERFLAG], frame[FADDRESS], frame[FCONTROL], frame[FBCC1], frame[linkLayerConf.frameTrailerIndex]);
+        printf("Sending: %X %X %X %X %X\n", frame[FHEADERFLAG], frame[FADDRESS], frame[FCONTROL], frame[FBCC1], frame[linkLayerConf.frameTrailerIndex]);
         int res = toPhysical(frame);
         printf("%d bytes sent\n", res);
 
@@ -291,7 +291,7 @@ int receiveResponse(char response, int currentTry) {
 int sendResponse(char response, char address) {
     char* confirmationFrame = createSupervisionFrame(address, response, linkLayerConf.maxInformationSize);
     int res = toPhysical(confirmationFrame);
-    printf("Sending %d bytes: %x %x %x %x %x\n", res, confirmationFrame[FHEADERFLAG], confirmationFrame[FADDRESS], confirmationFrame[FCONTROL], confirmationFrame[FBCC1], confirmationFrame[linkLayerConf.frameTrailerIndex]);
+    printf("Sending %d bytes: %X %X %X %X %X\n", res, confirmationFrame[FHEADERFLAG], confirmationFrame[FADDRESS], confirmationFrame[FCONTROL], confirmationFrame[FBCC1], confirmationFrame[linkLayerConf.frameTrailerIndex]);
     free(confirmationFrame);
     return 0;
 }
@@ -329,7 +329,7 @@ int receivePacket(char* packet, size_t packetLength) {
                 free(rrFrame);
             }
             else if(errorCheckResult == FRAME_INFO_ERROR) {
-                printf("Found info error in this frame...\nFrame BCC2: %x\n", receivedFrame[FBCC2(linkLayerConf.maxInformationSize)]);
+                printf("Found info error in this frame...\nFrame BCC2: %X\n", receivedFrame[FBCC2(linkLayerConf.maxInformationSize)]);
                 //If this was the expected frame, we want to reject it so that the sender can resend the frame earlier
                 if(receivedFrame[FCONTROL] == linkLayerConf.sequenceNumber) {
                     unsigned int rej;
@@ -457,7 +457,7 @@ void stuffFrame(char* destuffedFrame, char* stuffedFrame, size_t frameSize, size
     unsigned int currentDestuffedByte = 1;
     unsigned int currentStuffedByte = 1;
 
-    printf("Destuffed frame: %x %x %x %x %x %x\n", destuffedFrame[FHEADERFLAG], destuffedFrame[FADDRESS], destuffedFrame[FCONTROL], destuffedFrame[FBCC1], destuffedFrame[FBCC2(maxInformationSize)], destuffedFrame[linkLayerConf.frameTrailerIndex]);
+    printf("Destuffed frame: %X %X %X %X %X %X\n", destuffedFrame[FHEADERFLAG], destuffedFrame[FADDRESS], destuffedFrame[FCONTROL], destuffedFrame[FBCC1], destuffedFrame[FBCC2(maxInformationSize)], destuffedFrame[linkLayerConf.frameTrailerIndex]);
 
     stuffedFrame[0] = FRAMEFLAG;
     stuffedFrame[frameSize - 1] = FRAMEFLAG;
@@ -491,14 +491,14 @@ void stuffFrame(char* destuffedFrame, char* stuffedFrame, size_t frameSize, size
         stuffedFrame[bcc2Position] = destuffedFrame[bcc2Position];
     }
 
-    printf("Stuffed frame: %x %x %x %x %x %x\n", stuffedFrame[FHEADERFLAG], stuffedFrame[FADDRESS], stuffedFrame[FCONTROL], stuffedFrame[FBCC1], stuffedFrame[FBCC2(maxInformationSize)], stuffedFrame[linkLayerConf.frameTrailerIndex]);
+    printf("Stuffed frame: %X %X %X %X %X %X\n", stuffedFrame[FHEADERFLAG], stuffedFrame[FADDRESS], stuffedFrame[FCONTROL], stuffedFrame[FBCC1], stuffedFrame[FBCC2(maxInformationSize)], stuffedFrame[linkLayerConf.frameTrailerIndex]);
 }
 
 void destuffFrame(char* stuffedFrame, char* destuffedFrame, size_t frameSize, size_t maxInformationSize) {
     unsigned int currentDestuffedByte = 1;
     unsigned int currentStuffedByte = 1;
 
-    printf("Stuffed frame: %x %x %x %x %x %x\n", stuffedFrame[FHEADERFLAG], stuffedFrame[FADDRESS], stuffedFrame[FCONTROL], stuffedFrame[FBCC1], stuffedFrame[FBCC2(linkLayerConf.maxInformationSize)], stuffedFrame[linkLayerConf.frameTrailerIndex]);
+    printf("Stuffed frame: %X %X %X %X %X %X\n", stuffedFrame[FHEADERFLAG], stuffedFrame[FADDRESS], stuffedFrame[FCONTROL], stuffedFrame[FBCC1], stuffedFrame[FBCC2(linkLayerConf.maxInformationSize)], stuffedFrame[linkLayerConf.frameTrailerIndex]);
 
     destuffedFrame[0] = FRAMEFLAG;
     destuffedFrame[frameSize - 1] = FRAMEFLAG;
@@ -520,5 +520,5 @@ void destuffFrame(char* stuffedFrame, char* destuffedFrame, size_t frameSize, si
         destuffedFrame[bcc2Position] = stuffedFrame[bcc2Position];
     }
 
-    printf("Destuffed frame: %x %x %x %x %x %x\n", destuffedFrame[FHEADERFLAG], destuffedFrame[FADDRESS], destuffedFrame[FCONTROL], destuffedFrame[FBCC1], destuffedFrame[FBCC2(linkLayerConf.maxInformationSize)], destuffedFrame[linkLayerConf.frameTrailerIndex]);
+    printf("Destuffed frame: %X %X %X %X %X %X\n", destuffedFrame[FHEADERFLAG], destuffedFrame[FADDRESS], destuffedFrame[FCONTROL], destuffedFrame[FBCC1], destuffedFrame[FBCC2(linkLayerConf.maxInformationSize)], destuffedFrame[linkLayerConf.frameTrailerIndex]);
 }
