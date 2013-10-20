@@ -37,7 +37,7 @@ int main(int argc, char** argv)
 
     //TODO this is temporary, we should ask the user to define this in the future
     linkLayerConf.numTransmissions = 4; //first transmission + retries
-    linkLayerConf.sendTimeout = 3; //seconds until timeout
+    linkLayerConf.sendTimeout = 10; //seconds until timeout
     linkLayerConf.receiveTimeout = RECEIVE_INFO_TIMEOUT;
     
     int fd;
