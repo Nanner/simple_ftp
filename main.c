@@ -46,7 +46,7 @@ int main(int argc, char** argv)
 
     if(role == TRANSMITTER && fd != -1) {
         //TODO these will be changed by the application layer later on, not fixed
-        int numberOfPackets = 4;
+        /*int numberOfPackets = 4;
         char packetArray[4][256] = {"cookies", "choco}~late", "chocolate~fruits~are~amazing~stuff~dude", "annoying}last}packet"};
 
         unsigned int i = 0;
@@ -56,23 +56,33 @@ int main(int argc, char** argv)
                 printf("Sent packet %d\n", i);
             else
                 break;
-        }
+        }*/
+        char* gibberishFile = "I'm a test, a little little test, I wonder if this will work, this will probably not work, oh well. Spam.";
+        if(sendFile(gibberishFile, strlen(gibberishFile), "gibberishFile.txt") == 0)
+            printf("Sent.");
 
         closeLink();
     }
     else if(role == RECEIVER && fd != -1) {
-        int numberOfPackets = 4; //TODO temporary, this needs to be figured out from the packets themselves, I think
+        //char* gibberishFile = "I'm a test, a little little test, I wonder if this will work, this will probably not work, oh well. Spam.";
+        int numberOfPackets = 3; //TODO temporary, this needs to be figured out from the packets themselves, I think
 
         unsigned int i = 0;
         for(; i < numberOfPackets; i++) {
-            char* string = malloc(256);
-            int res = receivePacket(string, 256);
+            char* string = malloc(128);
+            int res = receivePacket(string, 128);
             if(res == -5)
                 printf("Link was closed unexpectedly");
-            else if(res != -1)
-                printf("Received %d bytes: %s\n", res, string);
+            else if(res != -1) {
+                if(i == 1)
+                    printf("Received %d bytes: %s\n", res, &string[DATA_INDEX]);
+                else
+                    printf("Received packet\n");
+            }
             else
                 printf("Reception failed\n");
+            
+            free(string);
         }
 
         waitCloseLink();
