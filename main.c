@@ -91,7 +91,12 @@ int main(int argc, char** argv)
         size_t size;
         char fileName[applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t))];
         char* file = receiveFile(&size, fileName);
-        printf("Received: %s\n", file);
+        char* newFileName = "./notAPenguin.gif";
+        if(writeFile(file, newFileName, size) == 0)
+            printf("Success! File should be created!\n");
+        else
+            printf("Failed to create file\n");
+        //printf("Received: %s\n", file);
 
         waitCloseLink();
     }

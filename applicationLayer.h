@@ -49,4 +49,6 @@ int compareControlPackets(char* packet1, char* packet2);
 
 char* readFile(char *fileName, size_t* fileSize);
 
+int writeFile(char* fileBuffer, char* fileName, size_t fileSize);
+
 #endif

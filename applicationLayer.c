@@ -205,7 +205,7 @@ char* readFile(char *fileName, size_t* fileSize) {
 	char* buffer;
 
 	file = fopen(fileName, "rb");
-	if (!file) {
+	if(!file) {
 		fprintf(stderr, "Unable to open file %s, does it exist?\n", fileName);
 		return NULL;
 	}
@@ -225,4 +225,21 @@ char* readFile(char *fileName, size_t* fileSize) {
 	fclose(file);
 
 	return buffer;
+}
+
+int writeFile(char* fileBuffer, char* fileName, size_t fileSize) {
+	FILE* file;
+
+	file = fopen(fileName, "wb");
+	if(!file) {
+		fprintf(stderr, "Unable to create file %s!\n", fileName);
+		return -1;
+	}
+
+	int res = fwrite(fileBuffer, fileSize, 1, file);
+	fclose(file);
+	if(res == fileSize)
+		return 0;
+	else
+		return -1;
 }
