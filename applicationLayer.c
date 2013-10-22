@@ -1,5 +1,7 @@
 #include "applicationLayer.h"
 
+//TODO Restrict the minimum size for the information field of the frame that the user can input! It needs to hold at least a small packet (and the filename)
+
 int sendFile(char* file, size_t fileSize, char* fileName) {
 	if(fileSize > MAX_FILESIZE_ALLOWED) {
 		printf("This file is too large to be sent!\n");
@@ -27,6 +29,7 @@ int sendFile(char* file, size_t fileSize, char* fileName) {
 	}
 	free(startPacket);
 	unsigned long currentPacket = 0;
+	unsigned long currentSequence = 0;
 	for(; currentPacket < numberOfPackets; currentPacket++) {
 		unsigned long dataFieldSize;
 		if(currentPacket == numberOfPackets - 1) {
@@ -44,6 +47,13 @@ int sendFile(char* file, size_t fileSize, char* fileName) {
 			return -1;
 		}
 		free(dataPacket);
+
+		if(currentSequence > 255)
+			currentSequence = 0;
+		else
+			currentSequence++;
+
+		printf("On packet: %lu, sequence: %lu\n", currentPacket, currentSequence);
 	}
 	if(sendData(endPacket, endPacketSize) == -1) {
 		free(endPacket);
@@ -60,7 +70,7 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 	//char* fileNameReceived;
 	size_t fileSizeReceived;
 	size_t fileSizeLeft;
-	unsigned char expectedSequence = 0;
+	unsigned int expectedSequence = 0;
 	unsigned int fileIndexToCopyTo = 0;
 	char* file;
 
@@ -68,10 +78,8 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 	if(receiveData(startPacket, applicationLayerConf.maxPacketSize) != -1) {
 		if(startPacket[CONTROL_INDEX] == CONTROL_START) {
 			printf("Starting file reception.\n");
-			//TODO maybe restric the fileName to unsigned char size
 			unsigned char fileSizeSize = startPacket[FILESIZE_SIZE_INDEX];
 			unsigned char fileNameSize = startPacket[FILENAME_SIZE_INDEX(fileSizeSize)];
-			//fileNameReceived = malloc(fileNameSize);
 			memcpy(&fileSizeReceived, &startPacket[FILESIZE_INDEX], fileSizeSize);
 			memcpy(fileNameReceived, &startPacket[FILENAME_INDEX(fileSizeSize)], fileNameSize);
 
@@ -90,7 +98,7 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 		if(receiveData(packet, applicationLayerConf.maxPacketSize) != -1) {
 			if(packet[CONTROL_INDEX] == CONTROL_END)
 				transmissionOver = 1;
-			//TODO sequence number must be mod 255!!!
+
 			else if(packet[CONTROL_INDEX] == CONTROL_DATA && packet[SEQUENCE_INDEX] == expectedSequence) {
 				unsigned char l1 = packet[L1_INDEX];
 				unsigned char l2 = packet[L2_INDEX];
@@ -102,6 +110,10 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 				fileSizeLeft -= dataSize;
 				printf("\n%lu bytes left...\n\n", fileSizeLeft);
 				expectedSequence++;
+				if(expectedSequence > 255)
+					expectedSequence = 0;
+
+				printf("On sequence: %d", expectedSequence);
 			}
 		}
 		else return NULL;
