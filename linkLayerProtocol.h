@@ -45,7 +45,7 @@
 
 typedef struct {
     char port[20];
-    int baudRate;
+    speed_t baudRate;
     unsigned int sequenceNumber;
     unsigned int sendTimeout;
     unsigned int receiveTimeout;

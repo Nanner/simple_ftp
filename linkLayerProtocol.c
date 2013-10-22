@@ -254,8 +254,11 @@ int sendCommand(unsigned char command, unsigned char expectedResponse, int tryTi
 
     while (retryCounter < retries) {
 
-        if (retryCounter > 0)
-            printf("Retry #%d\n", retryCounter);
+        if (retryCounter > 0) {
+            char message[MESSAGE_LEN];
+            sprintf(message, "Retry #%d, resending frame\n", retryCounter);
+            writeToLog(message);
+        }
 
         printf("Sending: %X %X %X %X %X\n", frame[FHEADERFLAG], frame[FADDRESS], frame[FCONTROL], frame[FBCC1], frame[linkLayerConf.frameTrailerIndex]);
         int res = toPhysical(frame);
@@ -414,9 +417,12 @@ int sendData(char* packet, size_t packetLength) {
 
     while (retryCounter < linkLayerConf.numTransmissions) {
 
-        if (retryCounter > 0)
-            printf("Retry #%d\n", retryCounter);
-
+        if (retryCounter > 0) {
+            char message[MESSAGE_LEN];
+            sprintf(message, "Retry #%d, resending frame\n", retryCounter);
+            writeToLog(message);
+        }
+        
         // TODO turn this on and get the party started
         flipbit(&frame[FDATA], 2);
         
@@ -578,8 +584,6 @@ void writeToLog(char * string){
     char message[TIME_LEN+MESSAGE_LEN];
     strcpy(message, timeStamp);
     strcat(message, string);
-    
-    strcat(message, "\n");
     
     unsigned long len = strlen(message);
     if ( write(file, message, len) == -1){

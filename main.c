@@ -31,6 +31,7 @@ int main(int argc, char** argv)
     applicationLayerConf.maxDataFieldSize = applicationLayerConf.maxPacketSize - BASE_DATA_PACKET_SIZE;
     linkLayerConf.maxInformationSize = applicationLayerConf.maxPacketSize * 2 + 4;
     linkLayerConf.frameSize = linkLayerConf.maxInformationSize + BASE_FRAME_SIZE;
+    
     linkLayerConf.frameBCC2Index = FBCC2(linkLayerConf.maxInformationSize);
     linkLayerConf.frameTrailerIndex = FTRAILERFLAG(linkLayerConf.maxInformationSize);
     printf("maxInfoSize: %lu\n", (unsigned long) linkLayerConf.maxInformationSize);
