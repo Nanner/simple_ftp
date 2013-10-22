@@ -1,6 +1,8 @@
 #include "applicationLayer.h"
 
 //TODO Restrict the minimum size for the information field of the frame that the user can input! It needs to hold at least a small packet (and the filename)
+//TODO check for function return values, especially those that may return null.
+//TODO clean the file to char* function code
 
 int sendFile(char* file, size_t fileSize, char* fileName) {
 	if(fileSize > MAX_FILESIZE_ALLOWED) {
@@ -75,6 +77,10 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 	char* file;
 
 	char* startPacket = malloc(applicationLayerConf.maxPacketSize);
+	if(startPacket == NULL) {
+		printf("Failed to allocate memory for startPacket, terminating\n");
+		return NULL;
+	}
 	if(receiveData(startPacket, applicationLayerConf.maxPacketSize) != -1) {
 		if(startPacket[CONTROL_INDEX] == CONTROL_START) {
 			printf("Starting file reception.\n");
@@ -87,12 +93,20 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 			*fileSize = fileSizeReceived;
 			fileSizeLeft = fileSizeReceived;
 			file = malloc(fileSizeReceived);
+			if(file == NULL) {
+				printf("Failed to allocate memory for the file buffer, terminating\n");
+				return NULL;
+			}
 		}
 	}
 	else
 		return NULL;
 
 	char* packet = malloc(applicationLayerConf.maxPacketSize);
+	if(packet == NULL) {
+		printf("Failed to allocate memory for packet, terminating\n");
+		return NULL;
+	}
 	unsigned int transmissionOver = 0;
 	while(!transmissionOver) {
 		if(receiveData(packet, applicationLayerConf.maxPacketSize) != -1) {
@@ -131,6 +145,10 @@ char* createDataPacket(unsigned char sequenceNumber, size_t dataFieldLength, cha
 	printf("\nDataSize: %lu, L2: %u, L1: %u\n\n",dataFieldLength, l2, l1);
 
 	char* dataPacket = malloc(BASE_DATA_PACKET_SIZE + dataFieldLength);
+	if(dataPacket == NULL) {
+		printf("Failed to allocate memory for data packet creation, terminating\n");
+		return NULL;
+	}
 	dataPacket[CONTROL_INDEX] = CONTROL_DATA;
 	dataPacket[SEQUENCE_INDEX] = sequenceNumber;
 	dataPacket[L2_INDEX] = l2;
@@ -144,6 +162,10 @@ char* createControlPacket(size_t* sizeOfPacket, char controlField, size_t fileSi
 	*sizeOfPacket = 1 + 2 + sizeof(size_t) + 2 + strlen(fileName);
 
 	char* controlPacket = malloc(*sizeOfPacket);
+	if(controlPacket == NULL) {
+		printf("Failed to allocate memory for control packet creation, terminating\n");
+		return NULL;
+	}
 
 	controlPacket[CONTROL_INDEX] = controlField;
 
@@ -192,6 +214,10 @@ int compareControlPackets(char* packet1, char* packet2) {
 			size_t fileNameSize2 = packet2[FILENAME_SIZE_INDEX(sizeOfFileSizeParameter2)];
 			packet1FileName = malloc(fileNameSize1); 
 			packet2FileName = malloc(fileNameSize2);
+			if(packet1FileName == NULL || packet2FileName == NULL) {
+				printf("Failed to allocate memory for packet file name, terminating\n");
+				return -1;
+			}
 			memcpy(packet1FileName, &packet1[FILENAME_INDEX(sizeOfFileSizeParameter1)], fileNameSize1);
 			memcpy(packet2FileName, &packet2[FILENAME_INDEX(sizeOfFileSizeParameter2)], fileNameSize2);
 

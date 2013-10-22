@@ -156,6 +156,11 @@ int toPhysical(char* frame) {
      */
     
     char* stuffedFrame = malloc(linkLayerConf.frameSize);
+    if(!stuffedFrame) {
+        printf("Failed to allocate memory for stuffed frame, terminating\n");
+        return -1;
+    }
+
     stuffFrame(frame, stuffedFrame, linkLayerConf.frameSize, linkLayerConf.maxInformationSize);
     long result = write(applicationLayerConf.fileDescriptor, stuffedFrame, linkLayerConf.frameSize);
     writeFrameToLog(frame, SENT);
@@ -218,6 +223,10 @@ int receiveCommand(char* command, int tryTimeout) {
     sigaction(SIGALRM, &sa, NULL);
 
     char* receivedFrame = malloc(linkLayerConf.frameSize);
+    if(!receivedFrame) {
+        printf("Failed to allocate memory for received frame, terminating\n");
+        return -1;
+    }
 
     alarm(tryTimeout);
     while (retryCounter < 1) {
@@ -286,6 +295,10 @@ int sendCommand(unsigned char command, unsigned char expectedResponse, int tryTi
 int receiveResponse(char response, int currentTry) {
     int res = 0;
     char* receivedFrame = malloc(linkLayerConf.frameSize);
+    if(!receivedFrame) {
+        printf("Failed to allocate memory for received frame, terminating\n");
+        return -1;
+    }
     while (retryCounter == currentTry) {
         printf("Waiting for response\n");
         res = fromPhysical(receivedFrame, 1);
@@ -319,6 +332,10 @@ int sendResponse(unsigned char response, unsigned char address) {
 int receiveData(char* packet, size_t packetLength) {
     //TODO maybe accept receiving a DISC here?
     char* receivedFrame = malloc(linkLayerConf.frameSize);
+    if(!receivedFrame) {
+        printf("Failed to allocate memory for received frame, terminating\n");
+        return -1;
+    }
 
     alarm(RECEIVE_INFO_TIMEOUT);
     int receivedNewPacket = 0;
@@ -400,6 +417,10 @@ int sendData(char* packet, size_t packetLength) {
 
     int STOP=FALSE;
     char* receivedFrame = malloc(linkLayerConf.frameSize);
+    if(!receivedFrame) {
+        printf("Failed to allocate memory for received frame, terminating\n");
+        return -1;
+    }
     int res;
     retryCounter = 0;
 

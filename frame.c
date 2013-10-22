@@ -4,6 +4,10 @@ int retryCounter = 0;
 
 char* createSupervisionFrame(unsigned char address, unsigned char control, size_t maxInformationSize) {
 	char* frame = malloc(BASE_FRAME_SIZE + maxInformationSize);
+	if(!frame) {
+		printf("Failed to allocate memory for a frame, terminating\n");
+		return NULL;
+	}
 	frame[FHEADERFLAG] = FRAMEFLAG;
 	frame[FADDRESS] = address;
 	frame[FCONTROL] = control;
@@ -15,6 +19,11 @@ char* createSupervisionFrame(unsigned char address, unsigned char control, size_
 
 char* createInfoFrame(unsigned char address, unsigned char control, char information[], size_t infoLength, size_t maxInformationSize) {
 	char* frame = malloc(BASE_FRAME_SIZE + maxInformationSize);
+	if(!frame) {
+		printf("Failed to allocate memory for a frame, terminating\n");
+		return NULL;
+	}
+	
 	frame[FHEADERFLAG] = FRAMEFLAG;
 	frame[FADDRESS] = address;
 	frame[FCONTROL] = control;
