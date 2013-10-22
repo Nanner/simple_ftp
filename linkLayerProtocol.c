@@ -47,37 +47,39 @@ int llopen(int port, int role){
     }
 
     applicationLayerConf.status = role;
-
+    
     if (role == TRANSMITTER) {
-       int result = setLink();
-
-       switch(result) {
-        case 0:
-            printf("Handshake sucess! Link set.\n");
-            break;
-        case -1:
-            printf("Failed to set link, connection timed out.\n");
-            return -1;
-            break;
-       }
+        initializeLog("transmitter");
+        int result = setLink();
+        
+        switch(result) {
+            case 0:
+                printf("Handshake sucess! Link set.\n");
+                break;
+            case -1:
+                printf("Failed to set link, connection timed out.\n");
+                return -1;
+                break;
+        }
     }
-
+    
     if (role == RECEIVER)
     {
+        initializeLog("receiver");
         printf("Waiting for connection...\n");
         int result = waitForLink();
-
+        
         switch(result) {
-        case 0:
-            printf("Handshake sent, link should be set.\n");
-            break;
-        case -1:
-            printf("Failed to set link, connection timed out.\n");
-            return -1;
-            break;
-       }
+            case 0:
+                printf("Handshake sent, link should be set.\n");
+                break;
+            case -1:
+                printf("Failed to set link, connection timed out.\n");
+                return -1;
+                break;
+        }
     }
-
+    
     linkLayerConf.sequenceNumber = 0;
     
     return applicationLayerConf.fileDescriptor;
@@ -141,10 +143,22 @@ void timeout() {
 
 int toPhysical(char* frame) {
     tcflush(applicationLayerConf.fileDescriptor, TCIOFLUSH);
-    printf("\nSending:\n%X %X %X %X %X\n", frame[FHEADERFLAG], frame[FADDRESS], frame[FCONTROL], frame[FBCC1], frame[linkLayerConf.frameTrailerIndex]);
+    
+    /*
+    char message[MESSAGE_LEN];
+    sprintf(message, "\nSending: %X %X %X %X %X\n",
+           frame[FHEADERFLAG],
+           frame[FADDRESS],
+           frame[FCONTROL],
+           frame[FBCC1],
+           frame[linkLayerConf.frameTrailerIndex]);
+    writeToLog(message);
+     */
+    
     char* stuffedFrame = malloc(linkLayerConf.frameSize);
     stuffFrame(frame, stuffedFrame, linkLayerConf.frameSize, linkLayerConf.maxInformationSize);
     long result = write(applicationLayerConf.fileDescriptor, stuffedFrame, linkLayerConf.frameSize);
+    writeFrameToLog(frame, SENT);
     free(stuffedFrame);
     return (int) result;
 }
@@ -191,7 +205,8 @@ int fromPhysical(char* frame, int exitOnTimeout) {
     }
 
     destuffFrame(receivedString, frame, linkLayerConf.frameSize, linkLayerConf.maxInformationSize);
-    printf("\nReceived:\n%X %X %X %X %X\n", frame[FHEADERFLAG], frame[FADDRESS], frame[FCONTROL], frame[FBCC1], frame[linkLayerConf.frameTrailerIndex]);
+    //printf("\nReceived:\n%X %X %X %X %X\n", frame[FHEADERFLAG], frame[FADDRESS], frame[FCONTROL], frame[FBCC1], frame[linkLayerConf.frameTrailerIndex]);
+    writeFrameToLog(frame, RECEIVED);
     return curchar;
 }
 
@@ -298,7 +313,7 @@ int sendResponse(unsigned char response, unsigned char address) {
     return 0;
 }
 
-int receivePacket(char* packet, size_t packetLength) {
+int receiveData(char* packet, size_t packetLength) {
     //TODO maybe accept receiving a DISC here?
     char* receivedFrame = malloc(linkLayerConf.frameSize);
 
@@ -373,7 +388,7 @@ int receivePacket(char* packet, size_t packetLength) {
         return -1;
 }
 
-int sendPacket(char* packet, size_t packetLength) {
+int sendData(char* packet, size_t packetLength) {
     if(packetLength > linkLayerConf.maxInformationSize) {
         printf("Packet is too big for defined information field size!\n");
 
@@ -480,7 +495,7 @@ void stuffFrame(char* destuffedFrame, char* stuffedFrame, size_t frameSize, size
         }
     }
 
-    unsigned int bcc2Position = FBCC2(maxInformationSize);
+    unsigned long bcc2Position = FBCC2(maxInformationSize);
     if(destuffedFrame[bcc2Position] == FRAMEFLAG) {
         stuffedFrame[bcc2Position - 1] = ESCAPE_BYTE;
         stuffedFrame[bcc2Position] = ESCAPED_FLAG;
@@ -514,7 +529,7 @@ void destuffFrame(char* stuffedFrame, char* destuffedFrame, size_t frameSize, si
             destuffedFrame[currentDestuffedByte] = stuffedFrame[currentStuffedByte];
     }
 
-    unsigned int bcc2Position = FBCC2(maxInformationSize);
+    unsigned long bcc2Position = FBCC2(maxInformationSize);
     if(stuffedFrame[bcc2Position - 1] == ESCAPE_BYTE) {
         destuffedFrame[bcc2Position] = stuffedFrame[bcc2Position] ^ XOR_BYTE;
     }
@@ -523,4 +538,102 @@ void destuffFrame(char* stuffedFrame, char* destuffedFrame, size_t frameSize, si
     }
 
     printf("Destuffed frame: %X %X %X %X %X %X\n", destuffedFrame[FHEADERFLAG], destuffedFrame[FADDRESS], destuffedFrame[FCONTROL], destuffedFrame[FBCC1], destuffedFrame[FBCC2(linkLayerConf.maxInformationSize)], destuffedFrame[linkLayerConf.frameTrailerIndex]);
+}
+
+void initializeLog(char * logname){
+    char filename[LOGNAME_MAX_LEN];
+    strcpy(filename, logname);
+    strcat(filename, LOG_FILE);
+    strcpy(linkLayerConf.logname, filename);
+    int file = open(linkLayerConf.logname, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    if (file == -1) {
+  		perror(linkLayerConf.logname);
+    }
+    
+    char buffer[LOGNAME_MAX_LEN];
+    sprintf(buffer, "%s", "Log start\n");
+    
+    int len = (int)strlen(buffer);
+    
+    if ( write(file, buffer, len ) == -1){
+        printf("Error writing to %s: %s\n", linkLayerConf.logname, strerror(errno));
+    }
+    
+    close(file);
+}
+
+void writeToLog(char * string){
+    int file = open(linkLayerConf.logname, O_WRONLY | O_APPEND, 0600);
+    if (file == -1) {
+  		perror(linkLayerConf.logname);
+    }
+    
+    char timeStamp[TIME_LEN];
+    struct tm * timeinfo;
+    time_t rawtime;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    strftime(timeStamp, TIME_LEN, "[%F %T] ", timeinfo);
+    
+    char message[TIME_LEN+MESSAGE_LEN];
+    strcpy(message, timeStamp);
+    strcat(message, string);
+    
+    strcat(message, "\n");
+    
+    unsigned long len = strlen(message);
+    if ( write(file, message, len) == -1){
+        printf("Error writing to %s: %s\n", linkLayerConf.logname, strerror(errno));
+    }
+    
+    close(file);
+}
+
+// utilities for frame printing
+char controlSymbols[] = {SET, DISC, UA, RR_0, RR_1, REJ_0, REJ_1, INFO_0, INFO_1};
+char *controlSymbolStrings[] = {"SET   ", "DISC  ", "UA    ", "RR_0  ", "RR_1  ", "REJ_0 ", "REJ_1 ", "INFO_0", "INFO_1"};
+int controlSymbolsSize = 9;
+
+void writeFrameToLog(char * frame, int direction) {
+    int file = open(linkLayerConf.logname, O_WRONLY | O_APPEND, 0600);
+    if (file == -1) {
+  		perror(linkLayerConf.logname);
+    }
+    
+    char timeStamp[TIME_LEN];
+    struct tm * timeinfo;
+    time_t rawtime;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    strftime(timeStamp, TIME_LEN, "[%F %T] ", timeinfo);
+    
+    char message[TIME_LEN+MESSAGE_LEN];
+    strcpy(message, timeStamp);
+    
+    if (direction == SENT)
+        strcat(message, "Sent     ");
+    else
+        strcat(message, "Received ");
+    
+    int i;
+    for (i = 0; i < controlSymbolsSize; i++) {
+        if ( frame[FCONTROL] == controlSymbols[i] )
+            strcat(message, controlSymbolStrings[i]);
+    }
+    
+    char bccInfo[20];
+    sprintf(bccInfo, " bcc1: %-2x", frame[FBCC1]);
+    strcat(message, bccInfo);
+    
+    sprintf(bccInfo, " bcc2: %-2x", frame[FBCC2(linkLayerConf.maxInformationSize)]);
+    strcat(message, bccInfo);
+    
+    strcat(message, "\n");
+
+    unsigned long len = strlen(message);
+    if ( write(file, message, len) == -1){
+        printf("Error writing to %s: %s\n", linkLayerConf.logname, strerror(errno));
+    }
+    
+    close(file);
 }

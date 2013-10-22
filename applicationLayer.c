@@ -16,21 +16,22 @@ int sendFile(char* file, size_t fileSize, char* fileName) {
 	char* endPacket = createControlPacket(&endPacketSize, CONTROL_END, fileSize, fileName);
 
 	//Calculate the number of packets we will need based on the defined maximum packet size
-	unsigned int numberOfPackets = fileSize / applicationLayerConf.maxDataFieldSize;
+	unsigned long numberOfPackets = fileSize / applicationLayerConf.maxDataFieldSize;
 	//Checks the remainder of previous division to check if we need an extra packet or not
 	if((fileSize % applicationLayerConf.maxDataFieldSize) > 0)
 		numberOfPackets++;
 
-	if(sendPacket(startPacket, startPacketSize) == -1) {
+	if(sendData(startPacket, startPacketSize) == -1) {
 		free(startPacket);
 		return -1;
 	}
 	free(startPacket);
-	unsigned int currentPacket = 0;
+	unsigned long currentPacket = 0;
 	for(; currentPacket < numberOfPackets; currentPacket++) {
-		unsigned int dataFieldSize;
+		unsigned long dataFieldSize;
 		if(currentPacket == numberOfPackets - 1) {
-			dataFieldSize = fileSize - currentPacket * applicationLayerConf.maxDataFieldSize; //We do this to ensure we don't copy more than the needed bytes in the last packet
+            //We do this to ensure we don't copy more than the needed bytes in the last packet
+			dataFieldSize = fileSize - currentPacket * applicationLayerConf.maxDataFieldSize;
 		}
 		else
 			dataFieldSize = applicationLayerConf.maxDataFieldSize;
@@ -38,13 +39,13 @@ int sendFile(char* file, size_t fileSize, char* fileName) {
 		char dataField[applicationLayerConf.maxDataFieldSize];
 		memcpy(dataField, &file[currentPacket * applicationLayerConf.maxDataFieldSize], dataFieldSize);
 		char* dataPacket = createDataPacket(currentPacket, dataFieldSize, dataField);
-		if(sendPacket(dataPacket, dataFieldSize + BASE_DATA_PACKET_SIZE) == -1) {
+		if(sendData(dataPacket, dataFieldSize + BASE_DATA_PACKET_SIZE) == -1) {
 			free(dataPacket);
 			return -1;
 		}
 		free(dataPacket);
 	}
-	if(sendPacket(endPacket, endPacketSize) == -1) {
+	if(sendData(endPacket, endPacketSize) == -1) {
 		free(endPacket);
 		return -1;
 	}
@@ -64,7 +65,7 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 	char* file;
 
 	char* startPacket = malloc(applicationLayerConf.maxPacketSize);
-	if(receivePacket(startPacket, applicationLayerConf.maxPacketSize) != -1) {
+	if(receiveData(startPacket, applicationLayerConf.maxPacketSize) != -1) {
 		if(startPacket[CONTROL_INDEX] == CONTROL_START) {
 			printf("Starting file reception.\n");
 			//TODO maybe restric the fileName to unsigned char size
@@ -86,7 +87,7 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 	char* packet = malloc(applicationLayerConf.maxPacketSize);
 	unsigned int transmissionOver = 0;
 	while(!transmissionOver) {
-		if(receivePacket(packet, applicationLayerConf.maxPacketSize) != -1) {
+		if(receiveData(packet, applicationLayerConf.maxPacketSize) != -1) {
 			if(packet[CONTROL_INDEX] == CONTROL_END)
 				transmissionOver = 1;
 			//TODO sequence number must be mod 255!!!
@@ -237,9 +238,9 @@ int writeFile(char* fileBuffer, char* fileName, size_t fileSize) {
 		return -1;
 	}
 
-	int res = fwrite(fileBuffer, sizeof(char), fileSize, file);
+	unsigned long result = fwrite(fileBuffer, sizeof(char), fileSize, file);
 	fclose(file);
-	if(res == fileSize)
+	if(result == fileSize)
 		return 0;
 	else
 		return -1;

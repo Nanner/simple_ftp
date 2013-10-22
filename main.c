@@ -37,7 +37,7 @@ int main(int argc, char** argv)
 
     //TODO this is temporary, we should ask the user to define this in the future
     linkLayerConf.numTransmissions = 4; //first transmission + retries
-    linkLayerConf.sendTimeout = 10; //seconds until timeout
+    linkLayerConf.sendTimeout = 3; //seconds until timeout
     linkLayerConf.receiveTimeout = RECEIVE_INFO_TIMEOUT;
     
     int fd;
@@ -58,7 +58,7 @@ int main(int argc, char** argv)
             else
                 break;
         }*/
-        char* fileName = "/home/nanner/virtualShared/pinguim.gif";
+        char* fileName = "./pinguim.gif";
         size_t fileSize;
         char* file = readFile(fileName, &fileSize);
         //char* gibberishFile = "I'm a test, a little little test, I wonder if this will work, this will probably not work, oh well. Spam.";
