@@ -68,8 +68,8 @@ int sendFile(char* file, size_t fileSize, char* fileName) {
 
 char* receiveFile(size_t* fileSize, char* fileName) {
 	printf("Waiting to receive file...\n");
-	char fileNameReceived[applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t))];
-	//char* fileNameReceived;
+	//char fileNameReceived[applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t))];
+	char* fileNameReceived;
 	size_t fileSizeReceived;
 	size_t fileSizeLeft;
 	unsigned int expectedSequence = 0;
@@ -86,6 +86,7 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 			printf("Starting file reception.\n");
 			unsigned char fileSizeSize = startPacket[FILESIZE_SIZE_INDEX];
 			unsigned char fileNameSize = startPacket[FILENAME_SIZE_INDEX(fileSizeSize)];
+			fileNameReceived = malloc(fileNameSize);
 			memcpy(&fileSizeReceived, &startPacket[FILESIZE_INDEX], fileSizeSize);
 			memcpy(fileNameReceived, &startPacket[FILENAME_INDEX(fileSizeSize)], fileNameSize);
 
@@ -99,8 +100,10 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 			}
 		}
 	}
-	else
+	else {
+		printf("Failed to receive start packet data\n");
 		return NULL;
+	}
 
 	char* packet = malloc(applicationLayerConf.maxPacketSize);
 	if(packet == NULL) {
@@ -130,12 +133,21 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 				printf("On sequence: %d", expectedSequence);
 			}
 		}
-		else return NULL;
+		else {
+			printf("Failed to receive packet data\n");
+			return NULL;
+		}
 	}
 	if(fileSizeLeft == 0 && compareControlPackets(startPacket, packet) == 0)
 		return file;
-	else
+	else {
+		if(fileSizeLeft != 0)
+			printf("Didn't receive the expected byte number\n");
+		if(compareControlPackets(startPacket, packet) != 0)
+			printf("Start and end packets are different\n");
+
 		return NULL;
+	}
 }
 
 char* createDataPacket(unsigned char sequenceNumber, size_t dataFieldLength, char* data) {
@@ -197,14 +209,20 @@ int compareControlPackets(char* packet1, char* packet2) {
 			memcpy(&packet2FileSize, &packet2[FILESIZE_INDEX], sizeOfFileSizeParameter2);
 
 			//Check if the filesizes are the same
-			if(packet1FileSize != packet2FileSize)
+			if(packet1FileSize != packet2FileSize) {
+				printf("Start and end packets file sizes are different\n");
 				return -1;
+			}
 		}
-		else
+		else {
+			printf("Start and end parameters aren't in the expected order\n");
 			return -2; //Something happened, the parameters aren't in the expected order
+		}	
 	}
-	else
+	else {
+		printf("Start and end 1st parameter are different or have different lengths\n"); 
 		return -2;
+	}
 
 	//If the second parameter type is the same and have the same length in both packets
 	if(packet1[3 + sizeOfFileSizeParameter1] == packet2[3 + sizeOfFileSizeParameter2] && packet1[FILENAME_SIZE_INDEX(sizeOfFileSizeParameter1)] == packet2[FILENAME_SIZE_INDEX(sizeOfFileSizeParameter2)]) {
@@ -223,6 +241,7 @@ int compareControlPackets(char* packet1, char* packet2) {
 
 			//Check if the filenames are the same
 			if(strcmp(packet1FileName, packet2FileName) != 0) {
+				printf("Start and end packets filenames are different!\n");
 				free(packet1FileName);
 				free(packet2FileName);
 				return -1;
@@ -231,11 +250,15 @@ int compareControlPackets(char* packet1, char* packet2) {
 			free(packet1FileName);
 			free(packet2FileName);
 		}
-		else
+		else {
+			printf("Start and end parameters aren't in the expected order\n");
 			return -2; //Something happened, the parameters aren't in the expected order
+		}
 	}
-	else
+	else {
+		printf("Start and end 2nd parameter are different or have different lengths\n"); 
 		return -2;
+	}
 
 	return 0;
 }
@@ -280,6 +303,8 @@ int writeFile(char* fileBuffer, char* fileName, size_t fileSize) {
 	fclose(file);
 	if(result == fileSize)
 		return 0;
-	else
+	else {
+		printf("Wrote %lu bytes when size was %lu bytes, failed\n");
 		return -1;
+	}
 }
