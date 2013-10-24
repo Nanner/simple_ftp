@@ -61,7 +61,7 @@ int main(int argc, char** argv)
         }*/
         char* fileName = "./pinguim.gif";
         size_t fileSize;
-        char* file = readFile(fileName, &fileSize);
+        unsigned char* file = readFile(fileName, &fileSize);
         //char* gibberishFile = "I'm a test, a little little test, I wonder if this will work, this will probably not work, oh well. Spam.";
         if(sendFile(file, fileSize, fileName) == 0)
             printf("Sent.");
@@ -91,7 +91,7 @@ int main(int argc, char** argv)
         }*/
         size_t size;
         char fileName[applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t))];
-        char* file = receiveFile(&size, fileName);
+        unsigned char* file = receiveFile(&size, fileName);
         char* newFileName = "./notAPenguin.gif";
         if(writeFile(file, newFileName, size) == 0)
             printf("Success! File should be created!\n");

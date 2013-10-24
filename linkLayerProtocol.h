@@ -22,7 +22,7 @@
 #define COM2 2
 #define COM1_PORT "/dev/ttyS0"
 #define COM2_PORT "/dev/ttyS1"
-#define BAUDRATE B9600
+#define BAUDRATE B115200
 
 #define FALSE 0
 #define TRUE 1
@@ -62,23 +62,23 @@ extern LinkLayer linkLayerConf;
 
 extern int retryCounter;
 
-void stuffFrame(char* destuffedFrame, char* stuffedFrame, size_t frameSize, size_t maxInformationSize);
+void stuffFrame(unsigned char* destuffedFrame, unsigned char* stuffedFrame, size_t frameSize, size_t maxInformationSize);
 
-void destuffFrame(char* stuffedFrame, char* destuffedFrame, size_t frameSize, size_t maxInformationSize);
+void destuffFrame(unsigned char* stuffedFrame, unsigned char* destuffedFrame, size_t frameSize, size_t maxInformationSize);
 
 int llopen(int port, int role);
 
 int llclose(int fd);
 
-int receiveData(char* packet, size_t packetLength);
+int receiveData(unsigned char* packet, size_t packetLength);
 
-int sendData(char* packet, size_t packetLength);
+int sendData(unsigned char* packet, size_t packetLength);
 
-int receiveCommand(char* command, int tryTimeout);
+int receiveCommand(unsigned char* command, int tryTimeout);
 
 int sendCommand(unsigned char command, unsigned char expectedResponse, int tryTimeout, int retries, unsigned char address);
 
-int receiveResponse(char response, int currentTry);
+int receiveResponse(unsigned char response, int currentTry);
 
 int sendResponse(unsigned char response, unsigned char address);
 
@@ -96,9 +96,9 @@ int confirmCloseLink();
 
 //int llwrite(int fd, char * buffer, int length); //Might be the same as toPhysical
 
-int toPhysical(char* frame);
+int toPhysical(unsigned char* frame);
 
-int fromPhysical(char* frame, int exitOnTimeout);
+int fromPhysical(unsigned char* frame, int exitOnTimeout);
 
 void timeout();
 
@@ -106,6 +106,6 @@ void initializeLog(char * logname);
 
 void writeToLog(char * string);
 
-void writeFrameToLog(char * frame, int direction);
+void writeFrameToLog(unsigned char * frame, int direction);
 
 #endif

@@ -2,8 +2,8 @@
 
 int retryCounter = 0;
 
-char* createSupervisionFrame(unsigned char address, unsigned char control, size_t maxInformationSize) {
-	char* frame = malloc(BASE_FRAME_SIZE + maxInformationSize);
+unsigned char* createSupervisionFrame(unsigned char address, unsigned char control, size_t maxInformationSize) {
+	unsigned char* frame = malloc(BASE_FRAME_SIZE + maxInformationSize);
 	if(!frame) {
 		printf("Failed to allocate memory for a frame, terminating\n");
 		return NULL;
@@ -17,8 +17,8 @@ char* createSupervisionFrame(unsigned char address, unsigned char control, size_
 	return frame;
 }
 
-char* createInfoFrame(unsigned char address, unsigned char control, char information[], size_t infoLength, size_t maxInformationSize) {
-	char* frame = malloc(BASE_FRAME_SIZE + maxInformationSize);
+unsigned char* createInfoFrame(unsigned char address, unsigned char control, unsigned char information[], size_t infoLength, size_t maxInformationSize) {
+	unsigned char* frame = malloc(BASE_FRAME_SIZE + maxInformationSize);
 	if(!frame) {
 		printf("Failed to allocate memory for a frame, terminating\n");
 		return NULL;
@@ -40,7 +40,7 @@ char* createInfoFrame(unsigned char address, unsigned char control, char informa
 	return frame;
 }
 
-int copyInfo(char destinationFrame[], char source[], size_t length, size_t maxInformationSize) {
+int copyInfo(unsigned char destinationFrame[], unsigned char source[], size_t length, size_t maxInformationSize) {
 	if(length > maxInformationSize)
 		return -1;
 
@@ -52,7 +52,7 @@ int copyInfo(char destinationFrame[], char source[], size_t length, size_t maxIn
 	return 0;
 }
 
-void getInfo(char* frame, char destination[], size_t length) {
+void getInfo(unsigned char* frame, unsigned char destination[], size_t length) {
 	unsigned int i = 0;
 	
 	for(; i < length; i++) {
@@ -60,11 +60,11 @@ void getInfo(char* frame, char destination[], size_t length) {
 	}
 }
 
-char createBCC1(unsigned char address, unsigned char control) {
+unsigned char createBCC1(unsigned char address, unsigned char control) {
 	return address ^ control;
 }
-char createBCC2(char information[], size_t maxInformationSize) {
-	char bcc = 0;
+unsigned char createBCC2(unsigned char information[], size_t maxInformationSize) {
+	unsigned char bcc = 0;
 	unsigned int i = 0;
 	for(; i < maxInformationSize; i++) {
 		bcc ^= information[i];
@@ -73,21 +73,20 @@ char createBCC2(char information[], size_t maxInformationSize) {
 	return bcc;
 }
 
-int validBCC1(char* frame) {
+int validBCC1(unsigned char* frame) {
 	return(createBCC1(frame[FADDRESS], frame[FCONTROL]) == frame[FBCC1]);
 }
 
-int validBCC2(char* frame, size_t maxInformationSize) {
-	char info[maxInformationSize];
+int validBCC2(unsigned char* frame, size_t maxInformationSize) {
+	unsigned char info[maxInformationSize];
 	memcpy(info, &frame[FDATA], maxInformationSize);
 	printf("Info: %s\n", info);
 	printf("Obtained bcc2: %x\n", createBCC2(info, maxInformationSize));
 	printf("Frame bcc2: %x\n", frame[FBCC2(maxInformationSize)]);
-	printf("Info size: %lu\n", strlen(info));
 	return(createBCC2(info, maxInformationSize) == frame[FBCC2(maxInformationSize)]);
 }
 
-int checkForErrors(char* frame, size_t maxInformationSize, int role) {
+int checkForErrors(unsigned char* frame, size_t maxInformationSize, int role) {
 	//Check header and trailer fields
 	if(frame[FHEADERFLAG] != FRAMEFLAG || frame[FTRAILERFLAG(maxInformationSize)] != FRAMEFLAG)
 		return FRAME_HEADER_ERROR;
@@ -136,6 +135,6 @@ int checkForErrors(char* frame, size_t maxInformationSize, int role) {
 	return 0;
 }
 
-void flipbit(char* byte, unsigned bitNumber){
+void flipbit(unsigned char* byte, unsigned bitNumber){
     *byte ^= (1UL << bitNumber);
 }

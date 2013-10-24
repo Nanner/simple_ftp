@@ -44,17 +44,17 @@
 #define FRAME_HEADER_ERROR -1
 #define FRAME_INFO_ERROR -2
 
-char* createSupervisionFrame(unsigned char address, unsigned char control, size_t maxInformationSize);
-char* createInfoFrame(unsigned char address, unsigned char control, char information[], size_t infoLength, size_t maxInformationSize);
+unsigned char* createSupervisionFrame(unsigned char address, unsigned char control, size_t maxInformationSize);
+unsigned char* createInfoFrame(unsigned char address, unsigned char control, unsigned char information[], size_t infoLength, size_t maxInformationSize);
 
-int copyInfo(char* destinationFrame, char source[], size_t length, size_t maxInformationSize);
-void getInfo(char* frame, char destination[], size_t length);
+int copyInfo(unsigned char* destinationFrame, unsigned char source[], size_t length, size_t maxInformationSize);
+void getInfo(unsigned char* frame, unsigned char destination[], size_t length);
 
-char createBCC1(unsigned char address, unsigned char control);
-char createBCC2(char information[], size_t maxInformationSize);
-int validBCC1(char* frame);
-int validBCC2(char* frame, size_t maxInformationSize);
-int checkForErrors(char* frame, size_t maxInformationSize, int role);
+unsigned char createBCC1(unsigned char address, unsigned char control);
+unsigned char createBCC2(unsigned char information[], size_t maxInformationSize);
+int validBCC1(unsigned char* frame);
+int validBCC2(unsigned char* frame, size_t maxInformationSize);
+int checkForErrors(unsigned char* frame, size_t maxInformationSize, int role);
 
-void flipbit(char* byte, unsigned bitNumber);
+void flipbit(unsigned char* byte, unsigned bitNumber);
 #endif

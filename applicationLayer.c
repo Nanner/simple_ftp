@@ -4,7 +4,7 @@
 //TODO check for function return values, especially those that may return null.
 //TODO clean the file to char* function code
 
-int sendFile(char* file, size_t fileSize, char* fileName) {
+int sendFile(unsigned char* file, size_t fileSize, char* fileName) {
 	if(fileSize > MAX_FILESIZE_ALLOWED) {
 		printf("This file is too large to be sent!\n");
 		return -1;
@@ -15,9 +15,9 @@ int sendFile(char* file, size_t fileSize, char* fileName) {
 		return -1;
 	}
 	size_t startPacketSize;
-	char* startPacket = createControlPacket(&startPacketSize, CONTROL_START, fileSize, fileName);
+	unsigned char* startPacket = createControlPacket(&startPacketSize, CONTROL_START, fileSize, fileName);
 	size_t endPacketSize;
-	char* endPacket = createControlPacket(&endPacketSize, CONTROL_END, fileSize, fileName);
+	unsigned char* endPacket = createControlPacket(&endPacketSize, CONTROL_END, fileSize, fileName);
 
 	//Calculate the number of packets we will need based on the defined maximum packet size
 	unsigned long numberOfPackets = fileSize / applicationLayerConf.maxDataFieldSize;
@@ -41,9 +41,9 @@ int sendFile(char* file, size_t fileSize, char* fileName) {
 		else
 			dataFieldSize = applicationLayerConf.maxDataFieldSize;
 
-		char dataField[applicationLayerConf.maxDataFieldSize];
+		unsigned char dataField[applicationLayerConf.maxDataFieldSize];
 		memcpy(dataField, &file[currentPacket * applicationLayerConf.maxDataFieldSize], dataFieldSize);
-		char* dataPacket = createDataPacket(currentPacket, dataFieldSize, dataField);
+		unsigned char* dataPacket = createDataPacket(currentPacket, dataFieldSize, dataField);
 		if(sendData(dataPacket, dataFieldSize + BASE_DATA_PACKET_SIZE) == -1) {
 			free(dataPacket);
 			return -1;
@@ -66,7 +66,7 @@ int sendFile(char* file, size_t fileSize, char* fileName) {
 	return 0;
 }
 
-char* receiveFile(size_t* fileSize, char* fileName) {
+unsigned char* receiveFile(size_t* fileSize, char* fileName) {
 	printf("Waiting to receive file...\n");
 	char fileNameReceived[applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t))];
 	//char* fileNameReceived;
@@ -74,9 +74,9 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 	size_t fileSizeLeft;
 	unsigned int expectedSequence = 0;
 	unsigned int fileIndexToCopyTo = 0;
-	char* file;
+	unsigned char* file;
 
-	char* startPacket = malloc(applicationLayerConf.maxPacketSize);
+	unsigned char* startPacket = malloc(applicationLayerConf.maxPacketSize);
 	if(startPacket == NULL) {
 		printf("Failed to allocate memory for startPacket, terminating\n");
 		return NULL;
@@ -105,7 +105,7 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 		return NULL;
 	}
 
-	char* packet = malloc(applicationLayerConf.maxPacketSize);
+	unsigned char* packet = malloc(applicationLayerConf.maxPacketSize);
 	if(packet == NULL) {
 		printf("Failed to allocate memory for packet, terminating\n");
 		return NULL;
@@ -150,13 +150,13 @@ char* receiveFile(size_t* fileSize, char* fileName) {
 	}
 }
 
-char* createDataPacket(unsigned char sequenceNumber, size_t dataFieldLength, char* data) {
+unsigned char* createDataPacket(unsigned char sequenceNumber, size_t dataFieldLength, unsigned char* data) {
 	unsigned char l1, l2;
 	l2 = dataFieldLength / 256;
 	l1 = dataFieldLength % 256;
 	printf("\nDataSize: %lu, L2: %u, L1: %u\n\n",dataFieldLength, l2, l1);
 
-	char* dataPacket = malloc(BASE_DATA_PACKET_SIZE + dataFieldLength);
+	unsigned char* dataPacket = malloc(BASE_DATA_PACKET_SIZE + dataFieldLength);
 	if(dataPacket == NULL) {
 		printf("Failed to allocate memory for data packet creation, terminating\n");
 		return NULL;
@@ -170,10 +170,10 @@ char* createDataPacket(unsigned char sequenceNumber, size_t dataFieldLength, cha
 	return dataPacket;
 }
 
-char* createControlPacket(size_t* sizeOfPacket, char controlField, size_t fileSize, char* fileName) {
+unsigned char* createControlPacket(size_t* sizeOfPacket, unsigned char controlField, size_t fileSize, char* fileName) {
 	*sizeOfPacket = 1 + 2 + sizeof(size_t) + 2 + strlen(fileName);
 
-	char* controlPacket = malloc(*sizeOfPacket);
+	unsigned char* controlPacket = malloc(*sizeOfPacket);
 	if(controlPacket == NULL) {
 		printf("Failed to allocate memory for control packet creation, terminating\n");
 		return NULL;
@@ -194,7 +194,7 @@ char* createControlPacket(size_t* sizeOfPacket, char controlField, size_t fileSi
 	return controlPacket;
 }
 
-int compareControlPackets(char* packet1, char* packet2) {
+int compareControlPackets(unsigned char* packet1, unsigned char* packet2) {
 	size_t packet1FileSize, packet2FileSize;
 	char* packet1FileName;
 	char* packet2FileName;
@@ -263,9 +263,9 @@ int compareControlPackets(char* packet1, char* packet2) {
 	return 0;
 }
 
-char* readFile(char *fileName, size_t* fileSize) {
+unsigned char* readFile(char *fileName, size_t* fileSize) {
 	FILE* file;
-	char* buffer;
+	unsigned char* buffer;
 
 	file = fopen(fileName, "rb");
 	if(!file) {
@@ -277,7 +277,7 @@ char* readFile(char *fileName, size_t* fileSize) {
 	*fileSize = ftell(file);
 	fseek(file, 0, SEEK_SET);
 
-	buffer = (char *) malloc(*fileSize+1);
+	buffer = (unsigned char *) malloc(*fileSize+1);
 	if (!buffer) {
 		fprintf(stderr, "Memory error!");
         fclose(file);
@@ -290,7 +290,7 @@ char* readFile(char *fileName, size_t* fileSize) {
 	return buffer;
 }
 
-int writeFile(char* fileBuffer, char* fileName, size_t fileSize) {
+int writeFile(unsigned char* fileBuffer, char* fileName, size_t fileSize) {
 	FILE* file;
 
 	file = fopen(fileName, "wb");
@@ -299,12 +299,12 @@ int writeFile(char* fileBuffer, char* fileName, size_t fileSize) {
 		return -1;
 	}
 
-	unsigned long result = fwrite(fileBuffer, sizeof(char), fileSize, file);
+	unsigned long result = fwrite(fileBuffer, sizeof(unsigned char), fileSize, file);
 	fclose(file);
 	if(result == fileSize)
 		return 0;
 	else {
-		printf("Wrote %lu bytes when size was %lu bytes, failed\n");
+		printf("Wrote %lu bytes when size was %lu bytes, failed\n", result, fileSize);
 		return -1;
 	}
 }

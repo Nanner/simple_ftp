@@ -37,18 +37,18 @@ typedef struct {
 
 extern ApplicationLayer applicationLayerConf;
 
-int sendFile(char* file, size_t fileSize, char* fileName);
+int sendFile(unsigned char* file, size_t fileSize, char* fileName);
 
-char* receiveFile(size_t* fileSize, char* fileName);
+unsigned char* receiveFile(size_t* fileSize, char* fileName);
 
-char* createDataPacket(unsigned char sequenceNumber, size_t dataFieldLength, char* data);
+unsigned char* createDataPacket(unsigned char sequenceNumber, size_t dataFieldLength, unsigned char* data);
 
-char* createControlPacket(size_t* sizeOfPacket, char controlField, size_t fileSize, char* fileName);
+unsigned char* createControlPacket(size_t* sizeOfPacket, unsigned char controlField, size_t fileSize, char* fileName);
 
-int compareControlPackets(char* packet1, char* packet2);
+int compareControlPackets(unsigned char* packet1, unsigned char* packet2);
 
-char* readFile(char *fileName, size_t* fileSize);
+unsigned char* readFile(char *fileName, size_t* fileSize);
 
-int writeFile(char* fileBuffer, char* fileName, size_t fileSize);
+int writeFile(unsigned char* fileBuffer, char* fileName, size_t fileSize);
 
 #endif

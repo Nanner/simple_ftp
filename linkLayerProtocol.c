@@ -100,7 +100,7 @@ int setLink() {
 }
 
 int waitForLink() {
-    char command;
+    unsigned char command;
     int res = receiveCommand(&command, linkLayerConf.receiveTimeout);
     printf("Command: %d\nRes: %d\n", command, res);
     if(command == SET && res != -1) {
@@ -119,7 +119,7 @@ int closeLink() {
 }
 
 int waitCloseLink() {
-    char command;
+    unsigned char command;
     int result = receiveCommand(&command, linkLayerConf.receiveTimeout);
     if(command == DISC && result != -1) {
         return(confirmCloseLink());
@@ -141,7 +141,7 @@ void timeout() {
     retryCounter++;
 }
 
-int toPhysical(char* frame) {
+int toPhysical(unsigned char* frame) {
     tcflush(applicationLayerConf.fileDescriptor, TCIOFLUSH);
     
     /*
@@ -155,7 +155,7 @@ int toPhysical(char* frame) {
     writeToLog(message);
      */
     
-    char* stuffedFrame = malloc(linkLayerConf.frameSize);
+    unsigned char* stuffedFrame = malloc(linkLayerConf.frameSize);
     if(!stuffedFrame) {
         printf("Failed to allocate memory for stuffed frame, terminating\n");
         return -1;
@@ -168,10 +168,10 @@ int toPhysical(char* frame) {
     return (int) result;
 }
 
-int fromPhysical(char* frame, int exitOnTimeout) {
+int fromPhysical(unsigned char* frame, int exitOnTimeout) {
     int curchar = 0;
-    char receivedString[linkLayerConf.frameSize];
-    char buf[linkLayerConf.frameSize];
+    unsigned char receivedString[linkLayerConf.frameSize];
+    unsigned char buf[linkLayerConf.frameSize];
     int STOP=FALSE;
     long result = 0;
     int currentTry = retryCounter;
@@ -215,14 +215,14 @@ int fromPhysical(char* frame, int exitOnTimeout) {
     return curchar;
 }
 
-int receiveCommand(char* command, int tryTimeout) {
+int receiveCommand(unsigned char* command, int tryTimeout) {
     // install timeout handler
     struct sigaction sa;
     sa.sa_handler = timeout;
     sa.sa_flags = 0;
     sigaction(SIGALRM, &sa, NULL);
 
-    char* receivedFrame = malloc(linkLayerConf.frameSize);
+    unsigned char* receivedFrame = malloc(linkLayerConf.frameSize);
     if(!receivedFrame) {
         printf("Failed to allocate memory for received frame, terminating\n");
         return -1;
@@ -256,7 +256,7 @@ int sendCommand(unsigned char command, unsigned char expectedResponse, int tryTi
     sigaction(SIGALRM, &sa, NULL);
 
 
-    char* frame = createSupervisionFrame(address, command, linkLayerConf.maxInformationSize);
+    unsigned char* frame = createSupervisionFrame(address, command, linkLayerConf.maxInformationSize);
     int responseResult;
 
     retryCounter = 0;
@@ -292,9 +292,9 @@ int sendCommand(unsigned char command, unsigned char expectedResponse, int tryTi
 
 }
 
-int receiveResponse(char response, int currentTry) {
+int receiveResponse(unsigned char response, int currentTry) {
     int res = 0;
-    char* receivedFrame = malloc(linkLayerConf.frameSize);
+    unsigned char* receivedFrame = malloc(linkLayerConf.frameSize);
     if(!receivedFrame) {
         printf("Failed to allocate memory for received frame, terminating\n");
         return -1;
@@ -322,16 +322,16 @@ int receiveResponse(char response, int currentTry) {
 }
 
 int sendResponse(unsigned char response, unsigned char address) {
-    char* confirmationFrame = createSupervisionFrame(address, response, linkLayerConf.maxInformationSize);
+    unsigned char* confirmationFrame = createSupervisionFrame(address, response, linkLayerConf.maxInformationSize);
     int res = toPhysical(confirmationFrame);
     printf("Sending %d bytes: %X %X %X %X %X\n", res, confirmationFrame[FHEADERFLAG], confirmationFrame[FADDRESS], confirmationFrame[FCONTROL], confirmationFrame[FBCC1], confirmationFrame[linkLayerConf.frameTrailerIndex]);
     free(confirmationFrame);
     return 0;
 }
 
-int receiveData(char* packet, size_t packetLength) {
+int receiveData(unsigned char* packet, size_t packetLength) {
     //TODO maybe accept receiving a DISC here?
-    char* receivedFrame = malloc(linkLayerConf.frameSize);
+    unsigned char* receivedFrame = malloc(linkLayerConf.frameSize);
     if(!receivedFrame) {
         printf("Failed to allocate memory for received frame, terminating\n");
         return -1;
@@ -361,7 +361,7 @@ int receiveData(char* packet, size_t packetLength) {
                     rr = RR_0;
                 else
                     rr = RR_1;
-                char* rrFrame = createSupervisionFrame(RECEIVER_ADDRESS, rr, linkLayerConf.maxInformationSize);
+                unsigned char* rrFrame = createSupervisionFrame(RECEIVER_ADDRESS, rr, linkLayerConf.maxInformationSize);
                 toPhysical(rrFrame);
                 //free(rrFrame);
             }
@@ -374,7 +374,7 @@ int receiveData(char* packet, size_t packetLength) {
                         rej = REJ_0;
                     else
                         rej = REJ_1;
-                    char* rejFrame = createSupervisionFrame(RECEIVER_ADDRESS, rej, linkLayerConf.maxInformationSize);
+                    unsigned char* rejFrame = createSupervisionFrame(RECEIVER_ADDRESS, rej, linkLayerConf.maxInformationSize);
                     toPhysical(rejFrame);
                     free(rejFrame);
                 }
@@ -385,7 +385,7 @@ int receiveData(char* packet, size_t packetLength) {
                         rr = RR_0;
                     else
                         rr = RR_1;
-                    char* rrFrame = createSupervisionFrame(RECEIVER_ADDRESS, rr, linkLayerConf.maxInformationSize);
+                    unsigned char* rrFrame = createSupervisionFrame(RECEIVER_ADDRESS, rr, linkLayerConf.maxInformationSize);
                     toPhysical(rrFrame);
                     free(rrFrame);
                 }
@@ -408,15 +408,15 @@ int receiveData(char* packet, size_t packetLength) {
         return -1;
 }
 
-int sendData(char* packet, size_t packetLength) {
+int sendData(unsigned char* packet, size_t packetLength) {
     if(packetLength > linkLayerConf.maxInformationSize) {
         printf("Packet is too big for defined information field size!\n");
 
     }
-    char* frame = createInfoFrame(RECEIVER_ADDRESS, linkLayerConf.sequenceNumber, packet, packetLength, linkLayerConf.maxInformationSize);
+    unsigned char* frame = createInfoFrame(RECEIVER_ADDRESS, linkLayerConf.sequenceNumber, packet, packetLength, linkLayerConf.maxInformationSize);
 
     int STOP=FALSE;
-    char* receivedFrame = malloc(linkLayerConf.frameSize);
+    unsigned char* receivedFrame = malloc(linkLayerConf.frameSize);
     if(!receivedFrame) {
         printf("Failed to allocate memory for received frame, terminating\n");
         return -1;
@@ -497,11 +497,11 @@ int sendData(char* packet, size_t packetLength) {
 
 }
 
-void stuffFrame(char* destuffedFrame, char* stuffedFrame, size_t frameSize, size_t maxInformationSize) {
+void stuffFrame(unsigned char* destuffedFrame, unsigned char* stuffedFrame, size_t frameSize, size_t maxInformationSize) {
     unsigned int currentDestuffedByte = 1;
     unsigned int currentStuffedByte = 1;
 
-    printf("Destuffed frame: %X %X %X %X %X %X\n", destuffedFrame[FHEADERFLAG], destuffedFrame[FADDRESS], destuffedFrame[FCONTROL], destuffedFrame[FBCC1], destuffedFrame[FBCC2(maxInformationSize)], destuffedFrame[linkLayerConf.frameTrailerIndex]);
+    printf("Destuffed frame: %X %X %X %X %X %X\n", destuffedFrame[FHEADERFLAG], destuffedFrame[FADDRESS], destuffedFrame[FCONTROL], (unsigned char) destuffedFrame[FBCC1], (unsigned char) destuffedFrame[FBCC2(maxInformationSize)], destuffedFrame[linkLayerConf.frameTrailerIndex]);
 
     stuffedFrame[0] = FRAMEFLAG;
     stuffedFrame[frameSize - 1] = FRAMEFLAG;
@@ -535,14 +535,14 @@ void stuffFrame(char* destuffedFrame, char* stuffedFrame, size_t frameSize, size
         stuffedFrame[bcc2Position] = destuffedFrame[bcc2Position];
     }
 
-    printf("Stuffed frame: %X %X %X %X %X %X\n", stuffedFrame[FHEADERFLAG], stuffedFrame[FADDRESS], stuffedFrame[FCONTROL], stuffedFrame[FBCC1], stuffedFrame[FBCC2(maxInformationSize)], stuffedFrame[linkLayerConf.frameTrailerIndex]);
+    printf("Stuffed frame: %X %X %X %X %X %X\n", stuffedFrame[FHEADERFLAG], stuffedFrame[FADDRESS], stuffedFrame[FCONTROL], (unsigned char) stuffedFrame[FBCC1], (unsigned char) stuffedFrame[FBCC2(maxInformationSize)], stuffedFrame[linkLayerConf.frameTrailerIndex]);
 }
 
-void destuffFrame(char* stuffedFrame, char* destuffedFrame, size_t frameSize, size_t maxInformationSize) {
+void destuffFrame(unsigned char* stuffedFrame, unsigned char* destuffedFrame, size_t frameSize, size_t maxInformationSize) {
     unsigned int currentDestuffedByte = 1;
     unsigned int currentStuffedByte = 1;
 
-    printf("Stuffed frame: %X %X %X %X %X %X\n", stuffedFrame[FHEADERFLAG], stuffedFrame[FADDRESS], stuffedFrame[FCONTROL], stuffedFrame[FBCC1], stuffedFrame[FBCC2(linkLayerConf.maxInformationSize)], stuffedFrame[linkLayerConf.frameTrailerIndex]);
+    printf("Stuffed frame: %X %X %X %X %X %X\n", stuffedFrame[FHEADERFLAG], stuffedFrame[FADDRESS], stuffedFrame[FCONTROL], (unsigned char) stuffedFrame[FBCC1], (unsigned char) stuffedFrame[FBCC2(linkLayerConf.maxInformationSize)], stuffedFrame[linkLayerConf.frameTrailerIndex]);
 
     destuffedFrame[0] = FRAMEFLAG;
     destuffedFrame[frameSize - 1] = FRAMEFLAG;
@@ -564,7 +564,7 @@ void destuffFrame(char* stuffedFrame, char* destuffedFrame, size_t frameSize, si
         destuffedFrame[bcc2Position] = stuffedFrame[bcc2Position];
     }
 
-    printf("Destuffed frame: %X %X %X %X %X %X\n", destuffedFrame[FHEADERFLAG], destuffedFrame[FADDRESS], destuffedFrame[FCONTROL], destuffedFrame[FBCC1], destuffedFrame[FBCC2(linkLayerConf.maxInformationSize)], destuffedFrame[linkLayerConf.frameTrailerIndex]);
+    printf("Destuffed frame: %X %X %X %X %X %X\n", destuffedFrame[FHEADERFLAG], destuffedFrame[FADDRESS], destuffedFrame[FCONTROL], (unsigned char) destuffedFrame[FBCC1], (unsigned char) destuffedFrame[FBCC2(linkLayerConf.maxInformationSize)], destuffedFrame[linkLayerConf.frameTrailerIndex]);
 }
 
 void initializeLog(char * logname){
@@ -622,7 +622,7 @@ char controlSymbols[] = {SET, DISC, UA, RR_0, RR_1, REJ_0, REJ_1, INFO_0, INFO_1
 char *controlSymbolStrings[] = {"SET   ", "DISC  ", "UA    ", "RR_0  ", "RR_1  ", "REJ_0 ", "REJ_1 ", "INFO_0", "INFO_1"};
 int controlSymbolsSize = 9;
 
-void writeFrameToLog(char * frame, int direction) {
+void writeFrameToLog(unsigned char * frame, int direction) {
     int file = open(linkLayerConf.logname, O_WRONLY | O_APPEND, 0600);
     if (file == -1) {
   		perror(linkLayerConf.logname);
