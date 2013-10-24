@@ -594,17 +594,20 @@ void writeToLog(char * string){
     if (file == -1) {
   		perror(linkLayerConf.logname);
     }
-    
+    /*
     char timeStamp[TIME_LEN];
     struct tm * timeinfo;
     time_t rawtime;
     time(&rawtime);
     timeinfo = localtime(&rawtime);
     strftime(timeStamp, TIME_LEN, "[%F %T] ", timeinfo);
+     */
     
-    char message[TIME_LEN+MESSAGE_LEN];
-    strcpy(message, timeStamp);
-    strcat(message, string);
+    //char message[TIME_LEN+MESSAGE_LEN];
+    char message[MESSAGE_LEN];
+
+    //strcpy(message, timeStamp);
+    strcpy(message, string);
     
     unsigned long len = strlen(message);
     if ( write(file, message, len) == -1){
@@ -624,21 +627,24 @@ void writeFrameToLog(char * frame, int direction) {
     if (file == -1) {
   		perror(linkLayerConf.logname);
     }
-    
+    /*
     char timeStamp[TIME_LEN];
     struct tm * timeinfo;
     time_t rawtime;
     time(&rawtime);
     timeinfo = localtime(&rawtime);
     strftime(timeStamp, TIME_LEN, "[%F %T] ", timeinfo);
+     */
     
-    char message[TIME_LEN+MESSAGE_LEN];
-    strcpy(message, timeStamp);
+    //char message[TIME_LEN+MESSAGE_LEN];
+    char message[MESSAGE_LEN];
+
+    //strcpy(message, timeStamp);
     
     if (direction == SENT)
-        strcat(message, "Sent     ");
+        strcpy(message, "Sent     ");
     else
-        strcat(message, "Received ");
+        strcpy(message, "Received ");
     
     int i;
     for (i = 0; i < controlSymbolsSize; i++) {
