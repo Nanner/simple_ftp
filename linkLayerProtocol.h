@@ -22,7 +22,6 @@
 #define COM2 2
 #define COM1_PORT "/dev/ttyS0"
 #define COM2_PORT "/dev/ttyS1"
-#define BAUDRATE B115200
 
 #define FALSE 0
 #define TRUE 1
