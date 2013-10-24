@@ -27,8 +27,8 @@
 #define FALSE 0
 #define TRUE 1
 
-#define SET_UA_TIMEOUT 3
-#define RECEIVE_INFO_TIMEOUT 3
+#define SET_UA_TIMEOUT 30
+#define RECEIVE_INFO_TIMEOUT 30
 
 //Byte stuffing codes
 #define ESCAPE_BYTE 0x7D
