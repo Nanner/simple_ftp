@@ -12,8 +12,8 @@ int main(int argc, char** argv)
          (strcmp("/dev/ttyS1", argv[1])!=0) ) ||
         ((strcmp("transmitter",argv[2])!=0) &&
          (strcmp("receiver",   argv[2])!=0)  )  ) {
-            printf("Usage:\tnserial SerialPort transmitter|receiver [-b baudrate] [-s size of data per packet] [-r retry number] [-t timeout seconds]\n");
-            printf("Example:\tnserial /dev/ttyS0 transmitter -b B115200 -s 1024 -r 5 -t 20\n");
+            printf("Usage:\tnserial SerialPort transmitter|receiver filename [-b baudrate] [-s size of data per packet] [-r retry number] [-t timeout seconds]\n");
+            printf("Example:\tnserial /dev/ttyS0 transmitter ./pinguim.gif -b B115200 -s 1024 -r 5 -t 20\n");
             exit(1);
     }
     
@@ -43,6 +43,24 @@ int main(int argc, char** argv)
     linkLayerConf.sendTimeout = DEFAULT_TIMEOUT; //seconds until timeout
     linkLayerConf.receiveTimeout = RECEIVE_INFO_TIMEOUT;
     linkLayerConf.baudRate = B9600;
+    
+    char fileNameArgument[FILENAME_LEN] = "";
+    
+    if ( argc > 3 ) {
+        // the transmitter will send this file
+        if ( role == TRANSMITTER && fileExists(argv[3]) )
+            strcpy(fileNameArgument, argv[3]);
+        else if ( role == TRANSMITTER && fileExists(DEFAULT_FILENAME) )
+            strcpy(fileNameArgument, DEFAULT_FILENAME);
+        else if ( role == TRANSMITTER ) {
+            printf("Filename not specified / doesn't exist and default file '%s' doesn't exist! Terminating.\n", DEFAULT_FILENAME);
+            return -1;
+        }
+        
+        // the receiver will write to this filename (the third argument mustn't be a flag)
+        if ( role == RECEIVER && !fileExists(argv[3]) && argv[3][0] != '-' )
+            strcpy(fileNameArgument, argv[3]);
+    }
     
     int c; opterr = 0;
     int result;
@@ -91,10 +109,10 @@ int main(int argc, char** argv)
     fd = llopen(port, role);
 
     if(role == TRANSMITTER && fd != -1) {
-        char* fileName = "./pinguim.gif";
         size_t fileSize;
-        unsigned char* file = readFile(fileName, &fileSize);
-        if(sendFile(file, fileSize, fileName) == 0)
+        printf("The file '%s' will be sent.\n", fileNameArgument);
+        unsigned char* file = readFile(fileNameArgument, &fileSize);
+        if(sendFile(file, fileSize, fileNameArgument) == 0)
             printf("Sent file.");
 
         closeLink();
@@ -103,18 +121,21 @@ int main(int argc, char** argv)
         size_t size;
 
         //char fileName[applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t))];
-        char* fileName = NULL;
+        char* fileNameReceived = NULL;
 
-        unsigned char* file = receiveFile(&size, &fileName);
+        unsigned char* file = receiveFile(&size, &fileNameReceived);
         if(file != NULL) {
-            char* newFileName = "./notAPenguin.gif";
-
             if(waitCloseLink() != 0) {
                 llclose(applicationLayerConf.fileDescriptor);
             }
 
-            if(writeFile(file, fileName, size) == 0)
-                printf("Success! File should be created!\n");
+            if ( strcmp(fileNameArgument, "") != 0 ) {
+                // use the file name from the commandline
+                strcpy(fileNameReceived, fileNameArgument);
+            }
+            
+            if( writeFile(file, fileNameReceived, size) == 0 )
+                printf("Success! File '%s' should be created!\n", fileNameReceived);
             else {
                 printf("Failed to create file\n");
             }
@@ -128,4 +149,10 @@ int main(int argc, char** argv)
     }
     
     return 0;
+}
+
+int fileExists(char * filename)
+{
+    struct stat buffer;
+    return (stat (filename, &buffer) == 0);
 }

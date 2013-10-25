@@ -8,7 +8,10 @@
 #include "applicationLayer.h"
 
 #define DEFAULT_FILENAME "./pinguim.gif"
+#define FILENAME_LEN 1024
 
 int main(int argc, char** argv);
+
+int fileExists(char * filename);
 
 #endif
