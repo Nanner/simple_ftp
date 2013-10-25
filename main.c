@@ -78,9 +78,9 @@ int main(int argc, char** argv)
         case 's':
             result = setDataSize(optarg);
             if ( result == 0)
-                printf("Size of data per packet set to %s\n", optarg);
+                printf("Maximum information field size set to %s\n", optarg);
             else
-                printf("Error setting size of data per packet! Reverting to default %i\n", DEFAULT_DATA_SIZE);
+                printf("Error setting maximum information field size! Reverting to default %i\n", DEFAULT_DATA_SIZE);
             break;
         case 'r':
             result = setRetry(optarg);
@@ -92,17 +92,15 @@ int main(int argc, char** argv)
         case 't':
             result = setTimeout(optarg);
             if ( result == 0)
-                printf("Timeout set to %s seconds", optarg);
+                printf("Timeout set to %s seconds\n", optarg);
             else
-                printf("Error setting timeout seconds! Reverting to default %i", DEFAULT_TIMEOUT);
+                printf("Error setting timeout seconds! Reverting to default %i\n", DEFAULT_TIMEOUT);
             break;
         case '?':
             break;
         default:
             return -1;
     }
-    
-    printf("maxInfoSize: %lu\n", (unsigned long) linkLayerConf.maxInformationSize);
     
     int fd;
     
@@ -113,14 +111,13 @@ int main(int argc, char** argv)
         printf("The file '%s' will be sent.\n", fileNameArgument);
         unsigned char* file = readFile(fileNameArgument, &fileSize);
         if(sendFile(file, fileSize, fileNameArgument) == 0)
-            printf("Sent file.");
+            printf("Sent file.\n");
 
         closeLink();
     }
     else if(role == RECEIVER && fd != -1) {
         size_t size;
 
-        //char fileName[applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t))];
         char* fileNameReceived = NULL;
 
         unsigned char* file = receiveFile(&size, &fileNameReceived);

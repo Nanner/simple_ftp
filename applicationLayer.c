@@ -87,6 +87,8 @@ int sendFile(unsigned char* file, size_t fileSize, char* fileName) {
 		free(endPacket);
 		return -1;
 	}
+	loadBar(currentPacket, numberOfPackets, numberOfPackets, 50);
+	printf("\n\n");
 	free(endPacket);
 
 	return 0;
