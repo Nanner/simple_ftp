@@ -403,6 +403,12 @@ int receiveData(unsigned char* packet, size_t packetLength) {
 
             if(errorCheckResult == 0) {
                 printf("No errors found in this frame...\n");
+
+                //If we received a DISC, end reception here
+                if(receivedFrame[FCONTROL] == DISC) {
+                    return -2;
+                }
+
                 //If we received the expected frame
                 if(receivedFrame[FCONTROL] == linkLayerConf.sequenceNumber) {
                     printf("It's a new packet!\n");

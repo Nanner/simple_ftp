@@ -94,9 +94,8 @@ int main(int argc, char** argv)
         char* fileName = "./pinguim.gif";
         size_t fileSize;
         unsigned char* file = readFile(fileName, &fileSize);
-        //char* gibberishFile = "I'm a test, a little little test, I wonder if this will work, this will probably not work, oh well. Spam.";
         if(sendFile(file, fileSize, fileName) == 0)
-            printf("Sent.");
+            printf("Sent file.");
 
         closeLink();
     }
@@ -111,13 +110,20 @@ int main(int argc, char** argv)
 
             if(writeFile(file, newFileName, size) == 0)
                 printf("Success! File should be created!\n");
-            else
+            else {
                 printf("Failed to create file\n");
+                llclose(applicationLayerConf.fileDescriptor);
+                return 0;
+            }
 
-            waitCloseLink();
+            if(waitCloseLink() != 0) {
+                llclose(applicationLayerConf.fileDescriptor);
+            }
         }
         else {
             printf("Failed to correctly receive file\n");
+            llclose(applicationLayerConf.fileDescriptor);
+            return 0;
         }
         
     }

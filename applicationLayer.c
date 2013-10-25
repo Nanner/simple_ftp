@@ -81,7 +81,15 @@ unsigned char* receiveFile(size_t* fileSize, char* fileName) {
 		printf("Failed to allocate memory for startPacket, terminating\n");
 		return NULL;
 	}
-	if(receiveData(startPacket, applicationLayerConf.maxPacketSize) != -1) {
+
+	int receptionRes = receiveData(startPacket, applicationLayerConf.maxPacketSize);
+
+	if(receptionRes == -2) {
+		//We received a disconnect, end reception
+		printf("Received disconnect order, terminating reception\n");
+		return NULL;
+	}
+	else if(receptionRes != -1) {
 		if(startPacket[CONTROL_INDEX] == CONTROL_START) {
 			printf("Starting file reception.\n");
 			unsigned char fileSizeSize = startPacket[FILESIZE_SIZE_INDEX];
@@ -112,7 +120,13 @@ unsigned char* receiveFile(size_t* fileSize, char* fileName) {
 	}
 	unsigned int transmissionOver = 0;
 	while(!transmissionOver) {
-		if(receiveData(packet, applicationLayerConf.maxPacketSize) != -1) {
+		receptionRes = receiveData(packet, applicationLayerConf.maxPacketSize);
+		if(receptionRes == -2) {
+			//We received a disconnect, end reception
+			printf("Received disconnect order, terminating reception\n");
+			return NULL;
+		}
+		else if(receptionRes != -1) {
 			if(packet[CONTROL_INDEX] == CONTROL_END)
 				transmissionOver = 1;
 
