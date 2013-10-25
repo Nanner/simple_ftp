@@ -91,7 +91,7 @@ int main(int argc, char** argv)
     fd = llopen(port, role);
 
     if(role == TRANSMITTER && fd != -1) {
-        char* fileName = "./../pinguim.gif";
+        char* fileName = "./pinguim.gif";
         size_t fileSize;
         unsigned char* file = readFile(fileName, &fileSize);
         if(sendFile(file, fileSize, fileName) == 0)

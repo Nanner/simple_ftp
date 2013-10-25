@@ -170,7 +170,7 @@ unsigned char* receiveFile(size_t* fileSize, char** fileName) {
 		else if(receptionRes != -1) {
 			if(packet[CONTROL_INDEX] == CONTROL_END) {
 				transmissionOver = 1;
-				//loadBar(barIndex, numberOfPackets, 10, 50);
+				loadBar(barIndex, (int)numberOfPackets, (int)numberOfPackets, 50);
 				printf("\n\n");
 			}
 			else if(packet[CONTROL_INDEX] == CONTROL_DATA && packet[SEQUENCE_INDEX] == expectedSequence) {
@@ -183,7 +183,7 @@ unsigned char* receiveFile(size_t* fileSize, char** fileName) {
 				fileIndexToCopyTo += dataSize;
 				fileSizeLeft -= dataSize;
 				//printf("\n%lu bytes left...\n\n", fileSizeLeft);
-				//loadBar(barIndex, numberOfPackets, 10, 50);
+				loadBar(barIndex, (int)numberOfPackets, (int)numberOfPackets, 50);
 				barIndex++;
 				expectedSequence++;
 				if(expectedSequence > 255)

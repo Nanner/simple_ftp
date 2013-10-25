@@ -215,7 +215,7 @@ int toPhysical(unsigned char* frame) {
 
     stuffFrame(frame, stuffedFrame, linkLayerConf.frameSize, linkLayerConf.maxInformationSize);
     long result = write(applicationLayerConf.fileDescriptor, stuffedFrame, linkLayerConf.frameSize);
-    printf("To phys result: %ld\n", result);
+    //printf("To phys result: %ld\n", result);
     writeFrameToLog(frame, SENT);
     free(stuffedFrame);
     framesSent++;
@@ -526,11 +526,11 @@ int sendData(unsigned char* packet, size_t packetLength) {
                 if (errorCheckResult == 0){
                     if (receivedFrame[FCONTROL] == sendNextRR) {
                         alarm(0);
-                        printf("Received positive acknowledgement, send next frame\n");
+                        //printf("Received positive acknowledgement, send next frame\n");
                         linkLayerConf.sequenceNumber ^= INFO_1;
                         STOP = TRUE;
                     } else if (receivedFrame[FCONTROL] == resendRR || receivedFrame[FCONTROL] == expectedREJ) { 
-                        printf("Asked for resend!\n");
+                        //printf("Asked for resend!\n");
                         alarm(0);
                         retryCounter = 0;
                         receivedResend = 1;
@@ -549,7 +549,7 @@ int sendData(unsigned char* packet, size_t packetLength) {
     }
 
     if (STOP == TRUE) {
-        printf("Sent frame and received acknowledgement\n");
+        //printf("Sent frame and received acknowledgement\n");
         return res;
         free(frame);
         free(receivedFrame);
