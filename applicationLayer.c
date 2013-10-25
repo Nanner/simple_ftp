@@ -1,17 +1,43 @@
 #include "applicationLayer.h"
 
-//TODO Restrict the minimum size for the information field of the frame that the user can input! It needs to hold at least a small packet (and the filename)
 //TODO check for function return values, especially those that may return null.
-//TODO clean the file to char* function code
+
+// Process has done i out of n rounds,
+// and we want a bar of width w and resolution r.
+static inline void loadBar(int x, int n, int r, int w) {
+    // Only update r times.
+    if ( x % (n/r) != 0 ) return;
+ 
+    // Calculuate the ratio of complete-to-incomplete.
+    float ratio = x/(float)n;
+    int   c     = ratio * w;
+ 
+    // Show the percentage complete.
+    printf("%3d%% [", (int)(ratio*100) );
+ 
+    // Show the load bar.
+    int y;
+    for (y = 0; y < c; y++)
+       printf("=");
+ 
+    for (y = c; y < w; y++)
+       printf(" ");
+ 
+    // ANSI Control codes to go back to the
+    // previous line and clear it.
+   	printf("]\n");
+	if(x < n)   
+    	printf("\033[F\033[J");
+}
 
 int sendFile(unsigned char* file, size_t fileSize, char* fileName) {
 	if(fileSize > MAX_FILESIZE_ALLOWED) {
-		//printf("This file is too large to be sent!\n");
+		printf("This file is too large to be sent!\n");
 		return -1;
 	}
 
 	if(strlen(fileName) > (applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t)) ) || strlen(fileName) > 255) {
-		//printf("The filename is too large!\n");
+		printf("The filename is too large!\n");
 		return -1;
 	}
 	size_t startPacketSize;
@@ -55,7 +81,7 @@ int sendFile(unsigned char* file, size_t fileSize, char* fileName) {
 		else
 			currentSequence++;
 
-		//printf("On packet: %lu, sequence: %lu\n", currentPacket, currentSequence);
+		loadBar(currentPacket, numberOfPackets, numberOfPackets, 50);
 	}
 	if(sendData(endPacket, endPacketSize) == -1) {
 		free(endPacket);
@@ -64,34 +90,6 @@ int sendFile(unsigned char* file, size_t fileSize, char* fileName) {
 	free(endPacket);
 
 	return 0;
-}
-
-// Process has done i out of n rounds,
-// and we want a bar of width w and resolution r.
-static inline void loadBar(int x, int n, int r, int w) {
-    // Only update r times.
-    if ( x % (n/r) != 0 ) return;
- 
-    // Calculuate the ratio of complete-to-incomplete.
-    float ratio = x/(float)n;
-    int   c     = ratio * w;
- 
-    // Show the percentage complete.
-    printf("%3d%% [", (int)(ratio*100) );
- 
-    // Show the load bar.
-    int y;
-    for (y = 0; y < c; y++)
-       printf("=");
- 
-    for (y = c; y < w; y++)
-       printf(" ");
- 
-    // ANSI Control codes to go back to the
-    // previous line and clear it.
-   	printf("]\n");
-	if(x < n)   
-    	printf("\033[F\033[J");
 }
 
 unsigned char* receiveFile(size_t* fileSize, char** fileName) {
