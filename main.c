@@ -91,7 +91,7 @@ int main(int argc, char** argv)
     fd = llopen(port, role);
 
     if(role == TRANSMITTER && fd != -1) {
-        char* fileName = "./pinguim.gif";
+        char* fileName = "./../pinguim.gif";
         size_t fileSize;
         unsigned char* file = readFile(fileName, &fileSize);
         if(sendFile(file, fileSize, fileName) == 0)
@@ -102,22 +102,21 @@ int main(int argc, char** argv)
     else if(role == RECEIVER && fd != -1) {
         size_t size;
 
-        char fileName[applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t))];
+        //char fileName[applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t))];
+        char* fileName = NULL;
 
-        unsigned char* file = receiveFile(&size, fileName);
+        unsigned char* file = receiveFile(&size, &fileName);
         if(file != NULL) {
             char* newFileName = "./notAPenguin.gif";
 
-            if(writeFile(file, newFileName, size) == 0)
+            if(waitCloseLink() != 0) {
+                llclose(applicationLayerConf.fileDescriptor);
+            }
+
+            if(writeFile(file, fileName, size) == 0)
                 printf("Success! File should be created!\n");
             else {
                 printf("Failed to create file\n");
-                llclose(applicationLayerConf.fileDescriptor);
-                return 0;
-            }
-
-            if(waitCloseLink() != 0) {
-                llclose(applicationLayerConf.fileDescriptor);
             }
         }
         else {

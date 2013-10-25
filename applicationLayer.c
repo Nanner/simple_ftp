@@ -66,10 +66,8 @@ int sendFile(unsigned char* file, size_t fileSize, char* fileName) {
 	return 0;
 }
 
-unsigned char* receiveFile(size_t* fileSize, char* fileName) {
+unsigned char* receiveFile(size_t* fileSize, char** fileName) {
 	printf("Waiting to receive file...\n");
-	char fileNameReceived[applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t))];
-	//char* fileNameReceived;
 	size_t fileSizeReceived;
 	size_t fileSizeLeft;
 	unsigned int expectedSequence = 0;
@@ -94,11 +92,18 @@ unsigned char* receiveFile(size_t* fileSize, char* fileName) {
 			printf("Starting file reception.\n");
 			unsigned char fileSizeSize = startPacket[FILESIZE_SIZE_INDEX];
 			unsigned char fileNameSize = startPacket[FILENAME_SIZE_INDEX(fileSizeSize)];
-			//fileNameReceived = malloc(fileNameSize);
-			memcpy(&fileSizeReceived, &startPacket[FILESIZE_INDEX], fileSizeSize);
-			memcpy(fileNameReceived, &startPacket[FILENAME_INDEX(fileSizeSize)], fileNameSize);
 
+			memcpy(&fileSizeReceived, &startPacket[FILESIZE_INDEX], fileSizeSize);
+
+			char fileNameReceived[fileNameSize+1];
+			memcpy(fileNameReceived, &startPacket[FILENAME_INDEX(fileSizeSize)], fileNameSize);
+			fileNameReceived[fileNameSize] = '\0';
 			printf("\nReceiving %s, Expected size: %lu\n\n", fileNameReceived, fileSizeReceived);
+
+			*fileName = malloc(fileNameSize+1);
+
+			memcpy(*fileName, fileNameReceived, fileNameSize+1);
+
 			*fileSize = fileSizeReceived;
 			fileSizeLeft = fileSizeReceived;
 			file = malloc(fileSizeReceived);

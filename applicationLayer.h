@@ -39,7 +39,7 @@ extern ApplicationLayer applicationLayerConf;
 
 int sendFile(unsigned char* file, size_t fileSize, char* fileName);
 
-unsigned char* receiveFile(size_t* fileSize, char* fileName);
+unsigned char* receiveFile(size_t* fileSize, char** fileName);
 
 unsigned char* createDataPacket(unsigned char sequenceNumber, size_t dataFieldLength, unsigned char* data);
 
