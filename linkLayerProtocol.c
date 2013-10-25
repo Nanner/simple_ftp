@@ -1,5 +1,57 @@
 #include "linkLayerProtocol.h"
 
+static unsigned int framesSent = 0;
+static unsigned int framesResent = 0;
+static unsigned int framesReceived = 0;
+static unsigned int rejNumber = 0;
+static unsigned int timeouts = 0;
+
+int setBaudrate(char * baudrateString){
+    speed_t rates[] = {B0, B110, B115200, B1200, B134, B150, B1800, B19200, B200, B230400, B2400, B300, B38400, B4800, B50, B57600, B600, B75, B9600};
+    char * rateStrings[]= {"B0", "B110", "B115200", "B1200", "B134", "B150", "B1800", "B19200", "B200", "B230400", "B2400", "B300", "B38400", "B4800", "B50", "B57600", "B600", "B75", "B9600"};
+    int ratesSize = 19;
+    
+    int i;
+    for (i = 0; i < ratesSize; i++) {
+        if (strcmp(baudrateString, rateStrings[i]) == 0 ) {
+            linkLayerConf.baudRate = rates[i];
+            return 0;
+        }
+    }
+    
+    return 0;
+}
+
+int setDataSize(char * dataSizeString){
+    int size = atoi(dataSizeString);
+    
+    if ( size < MINIMUM_DATA_SIZE )
+        return -1;
+    
+    applicationLayerConf.maxPacketSize = size;
+    applicationLayerConf.maxDataFieldSize = applicationLayerConf.maxPacketSize - BASE_DATA_PACKET_SIZE;
+    linkLayerConf.maxInformationSize = applicationLayerConf.maxPacketSize * 2 + 4;
+    linkLayerConf.frameSize = linkLayerConf.maxInformationSize + BASE_FRAME_SIZE;
+    
+    linkLayerConf.frameBCC2Index = FBCC2(linkLayerConf.maxInformationSize);
+    linkLayerConf.frameTrailerIndex = FTRAILERFLAG(linkLayerConf.maxInformationSize);
+    
+    return 0;
+}
+
+int setRetry(char * retryNumberString){
+    int numberOfRetries = atoi(retryNumberString);
+                                //first transmission + retries
+    linkLayerConf.numTransmissions = 1 + numberOfRetries;
+    return 0;
+}
+
+int setTimeout(char * secondsString){
+    int seconds = atoi(secondsString);
+    linkLayerConf.sendTimeout = seconds; //seconds until timeout
+    return 0;
+}
+
 int llopen(int port, int role){
 
     struct termios newtio;
@@ -165,6 +217,7 @@ int toPhysical(unsigned char* frame) {
     long result = write(applicationLayerConf.fileDescriptor, stuffedFrame, linkLayerConf.frameSize);
     writeFrameToLog(frame, SENT);
     free(stuffedFrame);
+    framesSent++;
     return (int) result;
 }
 
@@ -212,6 +265,7 @@ int fromPhysical(unsigned char* frame, int exitOnTimeout) {
     destuffFrame(receivedString, frame, linkLayerConf.frameSize, linkLayerConf.maxInformationSize);
     //printf("\nReceived:\n%X %X %X %X %X\n", frame[FHEADERFLAG], frame[FADDRESS], frame[FCONTROL], frame[FBCC1], frame[linkLayerConf.frameTrailerIndex]);
     writeFrameToLog(frame, RECEIVED);
+    framesReceived++;
     return curchar;
 }
 
@@ -267,6 +321,7 @@ int sendCommand(unsigned char command, unsigned char expectedResponse, int tryTi
             char message[MESSAGE_LEN];
             sprintf(message, "Retry #%d, resending frame\n", retryCounter);
             writeToLog(message);
+            timeouts++;
         }
 
         printf("Sending: %X %X %X %X %X\n", frame[FHEADERFLAG], frame[FADDRESS], frame[FCONTROL], frame[FBCC1], frame[linkLayerConf.frameTrailerIndex]);
@@ -377,6 +432,7 @@ int receiveData(unsigned char* packet, size_t packetLength) {
                     unsigned char* rejFrame = createSupervisionFrame(RECEIVER_ADDRESS, rej, linkLayerConf.maxInformationSize);
                     toPhysical(rejFrame);
                     free(rejFrame);
+                    rejNumber++;
                 }
                 //If this was a repeated frame, we want to send an rr so that the sender resends the frame earlier
                 else {
@@ -442,6 +498,7 @@ int sendData(unsigned char* packet, size_t packetLength) {
             char message[MESSAGE_LEN];
             sprintf(message, "Retry #%d, resending frame\n", retryCounter);
             writeToLog(message);
+            timeouts++;
         }
         
         // TODO turn this on and get the party started
@@ -470,6 +527,9 @@ int sendData(unsigned char* packet, size_t packetLength) {
                         alarm(0);
                         retryCounter = 0;
                         receivedResend = 1;
+                        framesResent++;
+                        if(receivedFrame[FCONTROL] == expectedREJ)
+                            rejNumber++;
                     }
                 }
                 else {
@@ -594,19 +654,9 @@ void writeToLog(char * string){
     if (file == -1) {
   		perror(linkLayerConf.logname);
     }
-    /*
-    char timeStamp[TIME_LEN];
-    struct tm * timeinfo;
-    time_t rawtime;
-    time(&rawtime);
-    timeinfo = localtime(&rawtime);
-    strftime(timeStamp, TIME_LEN, "[%F %T] ", timeinfo);
-     */
-    
-    //char message[TIME_LEN+MESSAGE_LEN];
+
     char message[MESSAGE_LEN];
 
-    //strcpy(message, timeStamp);
     strcpy(message, string);
     
     unsigned long len = strlen(message);
@@ -627,24 +677,16 @@ void writeFrameToLog(unsigned char * frame, int direction) {
     if (file == -1) {
   		perror(linkLayerConf.logname);
     }
-    /*
-    char timeStamp[TIME_LEN];
-    struct tm * timeinfo;
-    time_t rawtime;
-    time(&rawtime);
-    timeinfo = localtime(&rawtime);
-    strftime(timeStamp, TIME_LEN, "[%F %T] ", timeinfo);
-     */
-    
-    //char message[TIME_LEN+MESSAGE_LEN];
-    char message[MESSAGE_LEN];
 
-    //strcpy(message, timeStamp);
+    char message[MESSAGE_LEN] = "-------------------------------------------------------------\n";
+    char counterInfo[100];
+    sprintf(counterInfo, "Frames sent: %u, of which %u were re-sends.\nREJ Frames: %u\nFrames received: %u\nTimed out %u times.\n", framesSent, framesResent, rejNumber, framesReceived, timeouts);
+    strcat(message, counterInfo);
     
     if (direction == SENT)
-        strcpy(message, "Sent     ");
+        strcat(message, "Sent: ");
     else
-        strcpy(message, "Received ");
+        strcat(message, "Received: ");
     
     int i;
     for (i = 0; i < controlSymbolsSize; i++) {
@@ -653,10 +695,10 @@ void writeFrameToLog(unsigned char * frame, int direction) {
     }
     
     char bccInfo[20];
-    sprintf(bccInfo, " bcc1: %-2x", frame[FBCC1]);
+    sprintf(bccInfo, " BCC1: %-2X", frame[FBCC1]);
     strcat(message, bccInfo);
     
-    sprintf(bccInfo, " bcc2: %-2x", frame[FBCC2(linkLayerConf.maxInformationSize)]);
+    sprintf(bccInfo, " BCC2: %-2X", frame[FBCC2(linkLayerConf.maxInformationSize)]);
     strcat(message, bccInfo);
     
     strcat(message, "\n");

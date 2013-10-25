@@ -74,15 +74,21 @@ unsigned char createBCC2(unsigned char information[], size_t maxInformationSize)
 }
 
 int validBCC1(unsigned char* frame) {
+	char obcc1[20];
+	sprintf(obcc1, "Calculated BCC1: %X\n", createBCC1(frame[FADDRESS], frame[FCONTROL]));
+	writeToLog(obcc1);
+
 	return(createBCC1(frame[FADDRESS], frame[FCONTROL]) == frame[FBCC1]);
 }
 
 int validBCC2(unsigned char* frame, size_t maxInformationSize) {
 	unsigned char info[maxInformationSize];
 	memcpy(info, &frame[FDATA], maxInformationSize);
-	printf("Info: %s\n", info);
-	printf("Obtained bcc2: %x\n", createBCC2(info, maxInformationSize));
-	printf("Frame bcc2: %x\n", frame[FBCC2(maxInformationSize)]);
+
+	char obcc2[20];
+	sprintf(obcc2, "Calculated BCC2: %X\n", createBCC2(info, maxInformationSize));
+	writeToLog(obcc2);
+
 	return(createBCC2(info, maxInformationSize) == frame[FBCC2(maxInformationSize)]);
 }
 

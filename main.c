@@ -3,6 +3,8 @@
 LinkLayer linkLayerConf;
 ApplicationLayer applicationLayerConf;
 
+//TODO allow user to specify filename
+
 int main(int argc, char** argv)
 {    
     if ( (argc < 3) ||
@@ -87,24 +89,8 @@ int main(int argc, char** argv)
     int fd;
     
     fd = llopen(port, role);
-    
-    // TODO restrict the minimum packet size
-    // TODO funcoes de set ao protocol
-    // 
 
     if(role == TRANSMITTER && fd != -1) {
-        //TODO these will be changed by the application layer later on, not fixed
-        /*int numberOfPackets = 4;
-        char packetArray[4][256] = {"cookies", "choco}~late", "chocolate~fruits~are~amazing~stuff~dude", "annoying}last}packet"};
-
-        unsigned int i = 0;
-        for(; i < numberOfPackets; i++) {
-            printf("Sending packet %d\n", i);
-            if(sendPacket(packetArray[i], 256) != -1)
-                printf("Sent packet %d\n", i);
-            else
-                break;
-        }*/
         char* fileName = "./pinguim.gif";
         size_t fileSize;
         unsigned char* file = readFile(fileName, &fileSize);
@@ -115,84 +101,26 @@ int main(int argc, char** argv)
         closeLink();
     }
     else if(role == RECEIVER && fd != -1) {
-        //char* gibberishFile = "I'm a test, a little little test, I wonder if this will work, this will probably not work, oh well. Spam.";
-        /*int numberOfPackets = 3; //TODO temporary, this needs to be figured out from the packets themselves, I think
-
-        unsigned int i = 0;
-        for(; i < numberOfPackets; i++) {
-            char* string = malloc(128);
-            int res = receivePacket(string, 128);
-            if(res == -5)
-                printf("Link was closed unexpectedly");
-            else if(res != -1) {
-                if(i == 1)
-                    printf("Received %d bytes: %s\n", res, &string[DATA_INDEX]);
-                else
-                    printf("Received packet\n");
-            }
-            else
-                printf("Reception failed\n");
-            
-            free(string);
-        }*/
         size_t size;
+
         char fileName[applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t))];
+
         unsigned char* file = receiveFile(&size, fileName);
-        char* newFileName = "./notAPenguin.gif";
-        if(writeFile(file, newFileName, size) == 0)
-            printf("Success! File should be created!\n");
-        else
-            printf("Failed to create file\n");
-        //printf("Received: %s\n", file);
+        if(file != NULL) {
+            char* newFileName = "./notAPenguin.gif";
 
-        waitCloseLink();
-    }
-    
-    return 0;
-}
+            if(writeFile(file, newFileName, size) == 0)
+                printf("Success! File should be created!\n");
+            else
+                printf("Failed to create file\n");
 
-int setBaudrate(char * baudrateString){
-    speed_t rates[] = {B0, B110, B115200, B1200, B134, B150, B1800, B19200, B200, B230400, B2400, B300, B38400, B4800, B50, B57600, B600, B75, B9600};
-    char * rateStrings[]= {"B0", "B110", "B115200", "B1200", "B134", "B150", "B1800", "B19200", "B200", "B230400", "B2400", "B300", "B38400", "B4800", "B50", "B57600", "B600", "B75", "B9600"};
-    int ratesSize = 19;
-    
-    int i;
-    for (i = 0; i < ratesSize; i++) {
-        if (strcmp(baudrateString, rateStrings[i]) == 0 ) {
-            linkLayerConf.baudRate = rates[i];
-            return 0;
+            waitCloseLink();
         }
+        else {
+            printf("Failed to correctly receive file\n");
+        }
+        
     }
     
-    return 0;
-}
-
-int setDataSize(char * dataSizeString){
-    int size = atoi(dataSizeString);
-    
-    if ( size < MINIMUM_DATA_SIZE )
-        return -1;
-    
-    applicationLayerConf.maxPacketSize = size;
-    applicationLayerConf.maxDataFieldSize = applicationLayerConf.maxPacketSize - BASE_DATA_PACKET_SIZE;
-    linkLayerConf.maxInformationSize = applicationLayerConf.maxPacketSize * 2 + 4;
-    linkLayerConf.frameSize = linkLayerConf.maxInformationSize + BASE_FRAME_SIZE;
-    
-    linkLayerConf.frameBCC2Index = FBCC2(linkLayerConf.maxInformationSize);
-    linkLayerConf.frameTrailerIndex = FTRAILERFLAG(linkLayerConf.maxInformationSize);
-    
-    return 0;
-}
-
-int setRetry(char * retryNumberString){
-    int numberOfRetries = atoi(retryNumberString);
-                                //first transmission + retries
-    linkLayerConf.numTransmissions = 1 + numberOfRetries;
-    return 0;
-}
-
-int setTimeout(char * secondsString){
-    int seconds = atoi(secondsString);
-    linkLayerConf.sendTimeout = seconds; //seconds until timeout
     return 0;
 }

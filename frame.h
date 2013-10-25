@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "linkLayerProtocol.h"
+
 #define TRANSMITTER 1
 #define RECEIVER 0
 

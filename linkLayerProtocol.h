@@ -23,6 +23,14 @@
 #define COM1_PORT "/dev/ttyS0"
 #define COM2_PORT "/dev/ttyS1"
 
+#define MINIMUM_DATA_SIZE 90
+
+#define DEFAULT_DATA_SIZE 128
+#define DEFAULT_BAUDRATE B9600
+#define DEFAULT_BAUDRATE_STRING "B9600"
+#define DEFAULT_TIMEOUT 3
+#define DEFAULT_RETRY 3
+
 #define FALSE 0
 #define TRUE 1
 
@@ -60,6 +68,14 @@ typedef struct {
 extern LinkLayer linkLayerConf;
 
 extern int retryCounter;
+
+int setBaudrate(char * baudrateString);
+
+int setDataSize(char * dataSizeString);
+
+int setRetry(char * retryNumberString);
+
+int setTimeout(char * secondsString);
 
 void stuffFrame(unsigned char* destuffedFrame, unsigned char* stuffedFrame, size_t frameSize, size_t maxInformationSize);
 
