@@ -6,12 +6,12 @@
 
 int sendFile(unsigned char* file, size_t fileSize, char* fileName) {
 	if(fileSize > MAX_FILESIZE_ALLOWED) {
-		printf("This file is too large to be sent!\n");
+		//printf("This file is too large to be sent!\n");
 		return -1;
 	}
 
 	if(strlen(fileName) > (applicationLayerConf.maxPacketSize - (BASE_DATA_PACKET_SIZE + sizeof(size_t)) ) || strlen(fileName) > 255) {
-		printf("The filename is too large!\n");
+		//printf("The filename is too large!\n");
 		return -1;
 	}
 	size_t startPacketSize;
@@ -55,7 +55,7 @@ int sendFile(unsigned char* file, size_t fileSize, char* fileName) {
 		else
 			currentSequence++;
 
-		printf("On packet: %lu, sequence: %lu\n", currentPacket, currentSequence);
+		//printf("On packet: %lu, sequence: %lu\n", currentPacket, currentSequence);
 	}
 	if(sendData(endPacket, endPacketSize) == -1) {
 		free(endPacket);
@@ -66,8 +66,36 @@ int sendFile(unsigned char* file, size_t fileSize, char* fileName) {
 	return 0;
 }
 
+// Process has done i out of n rounds,
+// and we want a bar of width w and resolution r.
+static inline void loadBar(int x, int n, int r, int w) {
+    // Only update r times.
+    if ( x % (n/r) != 0 ) return;
+ 
+    // Calculuate the ratio of complete-to-incomplete.
+    float ratio = x/(float)n;
+    int   c     = ratio * w;
+ 
+    // Show the percentage complete.
+    printf("%3d%% [", (int)(ratio*100) );
+ 
+    // Show the load bar.
+    int y;
+    for (y = 0; y < c; y++)
+       printf("=");
+ 
+    for (y = c; y < w; y++)
+       printf(" ");
+ 
+    // ANSI Control codes to go back to the
+    // previous line and clear it.
+   	printf("]\n");
+	if(x < n)   
+    	printf("\033[F\033[J");
+}
+
 unsigned char* receiveFile(size_t* fileSize, char** fileName) {
-	printf("Waiting to receive file...\n");
+	//printf("Waiting to receive file...\n");
 	size_t fileSizeReceived;
 	size_t fileSizeLeft;
 	unsigned int expectedSequence = 0;
@@ -76,7 +104,7 @@ unsigned char* receiveFile(size_t* fileSize, char** fileName) {
 
 	unsigned char* startPacket = malloc(applicationLayerConf.maxPacketSize);
 	if(startPacket == NULL) {
-		printf("Failed to allocate memory for startPacket, terminating\n");
+		//printf("Failed to allocate memory for startPacket, terminating\n");
 		return NULL;
 	}
 
@@ -84,12 +112,12 @@ unsigned char* receiveFile(size_t* fileSize, char** fileName) {
 
 	if(receptionRes == -2) {
 		//We received a disconnect, end reception
-		printf("Received disconnect order, terminating reception\n");
+		//printf("Received disconnect order, terminating reception\n");
 		return NULL;
 	}
 	else if(receptionRes != -1) {
 		if(startPacket[CONTROL_INDEX] == CONTROL_START) {
-			printf("Starting file reception.\n");
+			//printf("Starting file reception.\n");
 			unsigned char fileSizeSize = startPacket[FILESIZE_SIZE_INDEX];
 			unsigned char fileNameSize = startPacket[FILENAME_SIZE_INDEX(fileSizeSize)];
 
@@ -98,7 +126,7 @@ unsigned char* receiveFile(size_t* fileSize, char** fileName) {
 			char fileNameReceived[fileNameSize+1];
 			memcpy(fileNameReceived, &startPacket[FILENAME_INDEX(fileSizeSize)], fileNameSize);
 			fileNameReceived[fileNameSize] = '\0';
-			printf("\nReceiving %s, Expected size: %lu\n\n", fileNameReceived, fileSizeReceived);
+			//printf("\nReceiving %s, Expected size: %lu\n\n", fileNameReceived, fileSizeReceived);
 
 			*fileName = malloc(fileNameSize+1);
 
@@ -108,52 +136,64 @@ unsigned char* receiveFile(size_t* fileSize, char** fileName) {
 			fileSizeLeft = fileSizeReceived;
 			file = malloc(fileSizeReceived);
 			if(file == NULL) {
-				printf("Failed to allocate memory for the file buffer, terminating\n");
+				//printf("Failed to allocate memory for the file buffer, terminating\n");
 				return NULL;
 			}
 		}
 	}
 	else {
-		printf("Failed to receive start packet data\n");
+		//printf("Failed to receive start packet data\n");
 		return NULL;
 	}
 
 	unsigned char* packet = malloc(applicationLayerConf.maxPacketSize);
 	if(packet == NULL) {
-		printf("Failed to allocate memory for packet, terminating\n");
+		//printf("Failed to allocate memory for packet, terminating\n");
 		return NULL;
 	}
 	unsigned int transmissionOver = 0;
+	unsigned int barIndex = 0;
+
+	//Calculate the number of packets we will need based on the defined maximum packet size
+	unsigned long numberOfPackets = fileSizeReceived / applicationLayerConf.maxDataFieldSize;
+	//Checks the remainder of previous division to check if we need an extra packet or not
+	if((fileSizeReceived % applicationLayerConf.maxDataFieldSize) > 0)
+		numberOfPackets++;
+
 	while(!transmissionOver) {
 		receptionRes = receiveData(packet, applicationLayerConf.maxPacketSize);
 		if(receptionRes == -2) {
 			//We received a disconnect, end reception
-			printf("Received disconnect order, terminating reception\n");
+			//printf("Received disconnect order, terminating reception\n");
 			return NULL;
 		}
 		else if(receptionRes != -1) {
-			if(packet[CONTROL_INDEX] == CONTROL_END)
+			if(packet[CONTROL_INDEX] == CONTROL_END) {
 				transmissionOver = 1;
-
+				//loadBar(barIndex, numberOfPackets, 10, 50);
+				printf("\n\n");
+			}
 			else if(packet[CONTROL_INDEX] == CONTROL_DATA && packet[SEQUENCE_INDEX] == expectedSequence) {
 				unsigned char l1 = packet[L1_INDEX];
 				unsigned char l2 = packet[L2_INDEX];
-				printf("Received l2: %u, l1: %u\n", l2, l1);
+				//printf("Received l2: %u, l1: %u\n", l2, l1);
 				size_t dataSize = 256 * l2 + l1;
 
 				memcpy(&file[fileIndexToCopyTo], &packet[DATA_INDEX], dataSize);
 				fileIndexToCopyTo += dataSize;
 				fileSizeLeft -= dataSize;
-				printf("\n%lu bytes left...\n\n", fileSizeLeft);
+				//printf("\n%lu bytes left...\n\n", fileSizeLeft);
+				//loadBar(barIndex, numberOfPackets, 10, 50);
+				barIndex++;
 				expectedSequence++;
 				if(expectedSequence > 255)
 					expectedSequence = 0;
 
-				printf("On sequence: %d", expectedSequence);
+				//printf("On sequence: %d", expectedSequence);
 			}
 		}
 		else {
-			printf("Failed to receive packet data\n");
+			//printf("Failed to receive packet data\n");
 			return NULL;
 		}
 	}
@@ -173,11 +213,11 @@ unsigned char* createDataPacket(unsigned char sequenceNumber, size_t dataFieldLe
 	unsigned char l1, l2;
 	l2 = dataFieldLength / 256;
 	l1 = dataFieldLength % 256;
-	printf("\nDataSize: %lu, L2: %u, L1: %u\n\n",dataFieldLength, l2, l1);
+	//printf("\nDataSize: %lu, L2: %u, L1: %u\n\n",dataFieldLength, l2, l1);
 
 	unsigned char* dataPacket = malloc(BASE_DATA_PACKET_SIZE + dataFieldLength);
 	if(dataPacket == NULL) {
-		printf("Failed to allocate memory for data packet creation, terminating\n");
+		//printf("Failed to allocate memory for data packet creation, terminating\n");
 		return NULL;
 	}
 	dataPacket[CONTROL_INDEX] = CONTROL_DATA;
@@ -194,7 +234,7 @@ unsigned char* createControlPacket(size_t* sizeOfPacket, unsigned char controlFi
 
 	unsigned char* controlPacket = malloc(*sizeOfPacket);
 	if(controlPacket == NULL) {
-		printf("Failed to allocate memory for control packet creation, terminating\n");
+		//printf("Failed to allocate memory for control packet creation, terminating\n");
 		return NULL;
 	}
 
@@ -229,17 +269,17 @@ int compareControlPackets(unsigned char* packet1, unsigned char* packet2) {
 
 			//Check if the filesizes are the same
 			if(packet1FileSize != packet2FileSize) {
-				printf("Start and end packets file sizes are different\n");
+				//printf("Start and end packets file sizes are different\n");
 				return -1;
 			}
 		}
 		else {
-			printf("Start and end parameters aren't in the expected order\n");
+			//printf("Start and end parameters aren't in the expected order\n");
 			return -2; //Something happened, the parameters aren't in the expected order
 		}	
 	}
 	else {
-		printf("Start and end 1st parameter are different or have different lengths\n"); 
+		//printf("Start and end 1st parameter are different or have different lengths\n"); 
 		return -2;
 	}
 
@@ -252,7 +292,7 @@ int compareControlPackets(unsigned char* packet1, unsigned char* packet2) {
 			packet1FileName = malloc(fileNameSize1); 
 			packet2FileName = malloc(fileNameSize2);
 			if(packet1FileName == NULL || packet2FileName == NULL) {
-				printf("Failed to allocate memory for packet file name, terminating\n");
+				//printf("Failed to allocate memory for packet file name, terminating\n");
 				return -1;
 			}
 			memcpy(packet1FileName, &packet1[FILENAME_INDEX(sizeOfFileSizeParameter1)], fileNameSize1);
@@ -260,7 +300,7 @@ int compareControlPackets(unsigned char* packet1, unsigned char* packet2) {
 
 			//Check if the filenames are the same
 			if(strcmp(packet1FileName, packet2FileName) != 0) {
-				printf("Start and end packets filenames are different!\n");
+				//printf("Start and end packets filenames are different!\n");
 				free(packet1FileName);
 				free(packet2FileName);
 				return -1;
@@ -270,12 +310,12 @@ int compareControlPackets(unsigned char* packet1, unsigned char* packet2) {
 			free(packet2FileName);
 		}
 		else {
-			printf("Start and end parameters aren't in the expected order\n");
+			//printf("Start and end parameters aren't in the expected order\n");
 			return -2; //Something happened, the parameters aren't in the expected order
 		}
 	}
 	else {
-		printf("Start and end 2nd parameter are different or have different lengths\n"); 
+		//printf("Start and end 2nd parameter are different or have different lengths\n"); 
 		return -2;
 	}
 
@@ -323,7 +363,7 @@ int writeFile(unsigned char* fileBuffer, char* fileName, size_t fileSize) {
 	if(result == fileSize)
 		return 0;
 	else {
-		printf("Wrote %lu bytes when size was %lu bytes, failed\n", result, fileSize);
+		//printf("Wrote %lu bytes when size was %lu bytes, failed\n", result, fileSize);
 		return -1;
 	}
 }

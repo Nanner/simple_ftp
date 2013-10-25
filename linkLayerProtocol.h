@@ -45,7 +45,7 @@
 
 #define LOGNAME_MAX_LEN 512
 #define LOG_FILE ".log"
-#define MESSAGE_LEN 256
+#define MESSAGE_LEN 1024
 #define SENT 1
 #define RECEIVED 2
 #define TIME_LEN 23
