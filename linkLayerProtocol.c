@@ -166,6 +166,7 @@ int closeLink() {
     if(sendCommand(DISC, DISC, linkLayerConf.sendTimeout, linkLayerConf.numTransmissions, RECEIVER_ADDRESS) == 0)
         sendResponse(UA, SENDER_ADDRESS);
 
+    sleep(1);
     printf("Closing link.\n");
     return(llclose(applicationLayerConf.fileDescriptor));
 }

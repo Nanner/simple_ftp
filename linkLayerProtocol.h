@@ -107,10 +107,6 @@ int waitCloseLink();
 
 int confirmCloseLink();
 
-//int llread(int fd, char * buffer); //Might be the same as fromPhysical
-
-//int llwrite(int fd, char * buffer, int length); //Might be the same as toPhysical
-
 int toPhysical(unsigned char* frame);
 
 int fromPhysical(unsigned char* frame, int exitOnTimeout);
