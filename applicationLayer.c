@@ -128,7 +128,8 @@ unsigned char* receiveFile(size_t* fileSize, char** fileName) {
 			fileNameReceived[fileNameSize] = '\0';
 			//printf("\nReceiving %s, Expected size: %lu\n\n", fileNameReceived, fileSizeReceived);
 
-			*fileName = malloc(fileNameSize+1);
+			//*fileName = malloc(fileNameSize+1);
+            *fileName = malloc(FILENAME_LEN);
 
 			memcpy(*fileName, fileNameReceived, fileNameSize+1);
 

@@ -27,6 +27,7 @@
 #define BASE_DATA_PACKET_SIZE 4
 
 #define MAX_FILESIZE_ALLOWED 1073741824
+#define FILENAME_LEN 1024
 
 typedef struct {
        int fileDescriptor;
