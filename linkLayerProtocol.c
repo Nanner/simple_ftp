@@ -19,7 +19,7 @@ int setBaudrate(char * baudrateString){
         }
     }
     
-    return 0;
+    return -1;
 }
 
 int setDataSize(char * dataSizeString){
