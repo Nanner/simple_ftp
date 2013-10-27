@@ -154,7 +154,6 @@ int setLink() {
 int waitForLink() {
     unsigned char command;
     int res = receiveCommand(&command, linkLayerConf.receiveTimeout);
-    //printf("Command: %d\nRes: %d\n", command, res);
     if(command == SET && res != -1) {
         return(sendResponse(UA, RECEIVER_ADDRESS));
     }
@@ -524,9 +523,13 @@ int sendData(unsigned char* packet, size_t packetLength) {
                         writeToLog(resendFrameInfo);
 
                         alarm(0);
-                        retryCounter = 0;
+
+                        if(receivedFrame[FCONTROL] == resendRR)
+                            retryCounter = 0;
+
                         receivedResend = 1;
                         framesResent++;
+                        
                         if(receivedFrame[FCONTROL] == expectedREJ)
                             rejNumber++;
                     }
