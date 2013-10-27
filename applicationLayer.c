@@ -117,6 +117,7 @@ unsigned char* receiveFile(size_t* fileSize, char** fileName) {
 	if(receptionRes == -2) {
 		//We received a disconnect, end reception
 		printf("Received disconnect order, terminating reception\n");
+		free(startPacket);
 		return NULL;
 	}
 	else if(receptionRes != -1) {
@@ -141,18 +142,22 @@ unsigned char* receiveFile(size_t* fileSize, char** fileName) {
 			file = malloc(fileSizeReceived);
 			if(file == NULL) {
 				printf("Failed to allocate memory for the file buffer, terminating\n");
+				free(startPacket);
 				return NULL;
 			}
 		}
 	}
 	else {
 		printf("Failed to receive start packet data\n");
+		free(startPacket);
 		return NULL;
 	}
 
 	unsigned char* packet = malloc(applicationLayerConf.maxPacketSize);
 	if(packet == NULL) {
 		printf("Failed to allocate memory for packet, terminating\n");
+		free(startPacket);
+		free(file);
 		return NULL;
 	}
 	unsigned int transmissionOver = 0;
@@ -172,6 +177,9 @@ unsigned char* receiveFile(size_t* fileSize, char** fileName) {
 		if(receptionRes == -2) {
 			//We received a disconnect, end reception
 			printf("Received disconnect order, terminating reception\n");
+			free(startPacket);
+			free(file);
+			free(packet);
 			return NULL;
 		}
 		else if(receptionRes != -1) {
@@ -198,16 +206,26 @@ unsigned char* receiveFile(size_t* fileSize, char** fileName) {
 		}
 		else {
 			printf("Failed to receive packet data\n");
+			free(startPacket);
+			free(file);
+			free(packet);
 			return NULL;
 		}
 	}
-	if(fileSizeLeft == 0 && compareControlPackets(startPacket, packet) == 0)
+	if(fileSizeLeft == 0 && compareControlPackets(startPacket, packet) == 0) {
+		free(startPacket);
+		free(packet);
 		return file;
+	}
 	else {
 		if(fileSizeLeft != 0)
 			printf("Didn't receive the expected byte number\n");
 		if(compareControlPackets(startPacket, packet) != 0)
 			printf("Start and end packets are different\n");
+
+		free(startPacket);
+		free(file);
+		free(packet);
 
 		return NULL;
 	}
@@ -298,8 +316,9 @@ int compareControlPackets(unsigned char* packet1, unsigned char* packet2) {
 				printf("Failed to allocate memory for packet file name, terminating\n");
 				return -1;
 			}
-			memcpy(packet1FileName, &packet1[FILENAME_INDEX(sizeOfFileSizeParameter1)], fileNameSize1);
-			memcpy(packet2FileName, &packet2[FILENAME_INDEX(sizeOfFileSizeParameter2)], fileNameSize2);
+
+			strcpy(packet1FileName, (char*) &packet1[FILENAME_INDEX(sizeOfFileSizeParameter1)]);
+			strcpy(packet2FileName, (char*) &packet2[FILENAME_INDEX(sizeOfFileSizeParameter2)]);
 
 			//Check if the filenames are the same
 			if(strcmp(packet1FileName, packet2FileName) != 0) {

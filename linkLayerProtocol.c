@@ -359,6 +359,7 @@ int receiveResponse(unsigned char response, int currentTry) {
             if (errorCheckResult == 0) {
                 if (receivedFrame[FCONTROL] == response) {
                     alarm(0);
+                    free(receivedFrame);
                     return 0;
                 } else {
                     char responseInfo[60];
@@ -368,12 +369,13 @@ int receiveResponse(unsigned char response, int currentTry) {
             }
             else {
                 char responseInfo[60];
-                printf("Error in received frame!\n");
+                printf(responseInfo, "Error in received frame!\n");
                 writeToLog(responseInfo);
             }
         }
     }
 
+    free(receivedFrame);
     return -1;
 }
 
@@ -416,6 +418,7 @@ int receiveData(unsigned char* packet, size_t packetLength) {
 
                 //If we received a DISC, end reception here
                 if(receivedFrame[FCONTROL] == DISC) {
+                    free(receivedFrame);
                     return -2;
                 }
 
@@ -431,8 +434,10 @@ int receiveData(unsigned char* packet, size_t packetLength) {
                     rr = RR_0;
                 else
                     rr = RR_1;
+
                 unsigned char* rrFrame = createSupervisionFrame(RECEIVER_ADDRESS, rr, linkLayerConf.maxInformationSize);
                 toPhysical(rrFrame);
+                free(rrFrame);
             }
             else if(errorCheckResult == FRAME_INFO_ERROR) {
                 char infoError[60];
@@ -478,10 +483,13 @@ int receiveData(unsigned char* packet, size_t packetLength) {
     }
 
     if(receivedNewPacket) {
+        free(receivedFrame);
         return res;
     }
-    else
+    else {
+        free(receivedFrame);
         return -1;
+    }
 }
 
 int sendData(unsigned char* packet, size_t packetLength) {
@@ -560,7 +568,7 @@ int sendData(unsigned char* packet, size_t packetLength) {
                 }
                 else {
                     char responseInfo[60];
-                    printf("Error in received frame!\n");
+                    sprintf(responseInfo, "Error in received frame!\n");
                     writeToLog(responseInfo);
                 }
             }
@@ -570,10 +578,9 @@ int sendData(unsigned char* packet, size_t packetLength) {
     }
 
     if (STOP == TRUE) {
-        return res;
         free(frame);
         free(receivedFrame);
-        return 0;
+        return res;
     }
     else {
         printf("Failed to receive acknowledgement\n");

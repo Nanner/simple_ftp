@@ -122,7 +122,10 @@ int main(int argc, char** argv)
         if(sendFile(file, fileSize, fileNameArgument) == 0)
             printf("Sent file.\n");
 
-        closeLink();
+        if(closeLink() != 0)
+            printf("Problem restoring serial port definitions.\n");
+
+        printf("File sent!");
     }
     else if(role == RECEIVER && fd != -1) {
         size_t size;
