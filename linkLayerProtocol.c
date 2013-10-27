@@ -86,11 +86,6 @@ int llopen(int port, int role){
     newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
     newtio.c_cc[VMIN]     = 1;   /* blocking read until 5 chars received */
     
-    /*
-     VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a
-     leitura do(s) próximo(s) caracter(es)
-     */
-    
     tcflush(applicationLayerConf.fileDescriptor, TCIOFLUSH);
     
     if ( tcsetattr(applicationLayerConf.fileDescriptor,TCSANOW,&newtio) == -1) {
@@ -526,10 +521,12 @@ int sendData(unsigned char* packet, size_t packetLength) {
 
                         if(receivedFrame[FCONTROL] == resendRR)
                             retryCounter = 0;
+                        else
+                            retryCounter++;
 
                         receivedResend = 1;
                         framesResent++;
-                        
+
                         if(receivedFrame[FCONTROL] == expectedREJ)
                             rejNumber++;
                     }

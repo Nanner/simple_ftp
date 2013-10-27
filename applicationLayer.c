@@ -2,7 +2,9 @@
 
 //TODO check for function return values, especially those that may return null.
 
-// Process has done i out of n rounds,
+// loadBar code based on
+// http://www.rosshemsley.co.uk/2011/02/creating-a-progress-bar-in-c-or-any-other-console-app/
+// Process has done x out of n rounds,
 // and we want a bar of width w and resolution r.
 static inline void loadBar(int x, int n, int r, int w) {
     // Only update r times.
