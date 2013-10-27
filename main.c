@@ -43,6 +43,7 @@ int main(int argc, char** argv)
     linkLayerConf.sendTimeout = DEFAULT_TIMEOUT; //seconds until timeout
     linkLayerConf.receiveTimeout = RECEIVE_INFO_TIMEOUT;
     linkLayerConf.baudRate = B9600;
+    linkLayerConf.testMode = 0;
     
     char fileNameArgument[FILENAME_LEN] = "";
     
@@ -65,7 +66,7 @@ int main(int argc, char** argv)
     int c; opterr = 0;
     int result;
     
-    while ((c = getopt (argc, argv, "b:s:r:t:")) != -1)
+    while ((c = getopt (argc, argv, "b:s:r:t:m:")) != -1)
         switch (c)
     {
         case 'b':
@@ -95,6 +96,16 @@ int main(int argc, char** argv)
                 printf("Timeout set to %s seconds\n", optarg);
             else
                 printf("Error setting timeout seconds! Reverting to default %i\n", DEFAULT_TIMEOUT);
+            break;
+        case 'm':
+            result = setTestMode(optarg);
+            if( result == 0)
+                if(strcmp(optarg, "1") == 0)
+                    printf("Test mode is ON\n");
+                else
+                    printf("Test mode is OFF\n");
+            else
+                printf("Error setting test mode, reverting to OFF\n");
             break;
         case '?':
             break;

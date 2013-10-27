@@ -52,6 +52,18 @@ int setTimeout(char * secondsString){
     return 0;
 }
 
+int setTestMode(char * testString){
+    int opt = atoi(testString);
+    if(opt == 0 || opt == 1) {
+        if(opt == 1)
+            srand(time(NULL));
+        linkLayerConf.testMode = opt;
+        return 0;
+    }
+    else
+        return -1;
+}
+
 int llopen(int port, int role){
 
     struct termios newtio;
@@ -385,6 +397,17 @@ int receiveData(unsigned char* packet, size_t packetLength) {
         if(res != -1) {
             int errorCheckResult = checkForErrors(receivedFrame, linkLayerConf.maxInformationSize, applicationLayerConf.status);
 
+            if(linkLayerConf.testMode) {
+                float prob = rand() % 101;
+                if(prob <= ERROR_CHANCE) {
+                    prob = rand() % 101;
+                    if(prob <= INFO_ERROR_CHANCE)
+                        errorCheckResult = FRAME_INFO_ERROR;
+                    else
+                        errorCheckResult = FRAME_HEADER_ERROR;
+                }
+            }
+
             if(errorCheckResult == 0) {
 
                 //If we received a DISC, end reception here
@@ -440,8 +463,11 @@ int receiveData(unsigned char* packet, size_t packetLength) {
                     free(rrFrame);
                 }
             }
-            else
-                printf("Frame messed up\n");
+            else {
+                char frameError[60];
+                sprintf(frameError, "Found error in frame header\n");
+                writeToLog(frameError);
+            }
         }
         else
             printf("Timed out\n");
@@ -494,8 +520,8 @@ int sendData(unsigned char* packet, size_t packetLength) {
             timeouts++;
         }
         
-        // TODO turn this on and get the party started
-        flipbit(&frame[FDATA], 2);
+        if(linkLayerConf.testMode)
+            flipbit(&frame[FDATA], 2);
         
         res = toPhysical(frame);
 

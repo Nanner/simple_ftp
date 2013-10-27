@@ -50,6 +50,10 @@
 #define RECEIVED 2
 #define TIME_LEN 23
 
+//Test mode constants
+#define ERROR_CHANCE 20
+#define INFO_ERROR_CHANCE 50
+
 typedef struct {
     char port[20];
     speed_t baudRate;
@@ -63,6 +67,7 @@ typedef struct {
     unsigned long frameBCC2Index;
     unsigned long frameTrailerIndex;
     char logname[LOGNAME_MAX_LEN];
+    unsigned int testMode;
 } LinkLayer;
 
 extern LinkLayer linkLayerConf;
@@ -76,6 +81,8 @@ int setDataSize(char * dataSizeString);
 int setRetry(char * retryNumberString);
 
 int setTimeout(char * secondsString);
+
+int setTestMode(char * testString);
 
 void stuffFrame(unsigned char* destuffedFrame, unsigned char* stuffedFrame, size_t frameSize, size_t maxInformationSize);
 
