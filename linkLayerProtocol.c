@@ -192,6 +192,10 @@ int confirmCloseLink() {
         printf("Closing link.\n");
         return(llclose(applicationLayerConf.fileDescriptor));
     }
+    else {
+        printf("Closing link.\n");
+        return(llclose(applicationLayerConf.fileDescriptor));
+    }
 
     return -1;
 }

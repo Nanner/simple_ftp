@@ -150,7 +150,7 @@ int main(int argc, char** argv)
         }
         else {
             printf("Failed to correctly receive file\n");
-            llclose(applicationLayerConf.fileDescriptor);
+            confirmCloseLink();
             return 0;
         }
         
