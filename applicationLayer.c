@@ -1,7 +1,5 @@
 #include "applicationLayer.h"
 
-//TODO check for function return values, especially those that may return null.
-
 // loadBar code based on
 // http://www.rosshemsley.co.uk/2011/02/creating-a-progress-bar-in-c-or-any-other-console-app/
 // Process has done x out of n rounds,
@@ -101,7 +99,6 @@ int sendFile(unsigned char* file, size_t fileSize, char* fileName) {
 }
 
 unsigned char* receiveFile(size_t* fileSize, char** fileName) {
-	//printf("Waiting to receive file...\n");
 	size_t fileSizeReceived;
 	size_t fileSizeDone;
 	size_t fileSizeLeft;

@@ -433,7 +433,6 @@ int receiveData(unsigned char* packet, size_t packetLength) {
                     rr = RR_1;
                 unsigned char* rrFrame = createSupervisionFrame(RECEIVER_ADDRESS, rr, linkLayerConf.maxInformationSize);
                 toPhysical(rrFrame);
-                //free(rrFrame);
             }
             else if(errorCheckResult == FRAME_INFO_ERROR) {
                 char infoError[60];
@@ -477,8 +476,6 @@ int receiveData(unsigned char* packet, size_t packetLength) {
             printf("Timed out\n");
 
     }
-
-    //free(receivedFrame);
 
     if(receivedNewPacket) {
         return res;
