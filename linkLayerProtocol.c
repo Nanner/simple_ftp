@@ -180,7 +180,7 @@ int closeLink() {
 int waitCloseLink() {
     unsigned char command;
     int result = receiveCommand(&command, linkLayerConf.receiveTimeout);
-    if(command == DISC && result != -1) {
+    if(result != -1 && command == DISC) {
         return(confirmCloseLink());
     }
 
