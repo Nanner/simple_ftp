@@ -74,6 +74,10 @@ extern LinkLayer linkLayerConf;
 
 extern int retryCounter;
 
+int llopen(int port, int role);
+
+int llclose(int fd);
+
 int setBaudrate(char * baudrateString);
 
 int setDataSize(char * dataSizeString);
@@ -84,25 +88,9 @@ int setTimeout(char * secondsString);
 
 int setTestMode(char * testString);
 
-void stuffFrame(unsigned char* destuffedFrame, unsigned char* stuffedFrame, size_t frameSize, size_t maxInformationSize);
-
-void destuffFrame(unsigned char* stuffedFrame, unsigned char* destuffedFrame, size_t frameSize, size_t maxInformationSize);
-
-int llopen(int port, int role);
-
-int llclose(int fd);
-
 int receiveData(unsigned char* packet, size_t packetLength);
 
 int sendData(unsigned char* packet, size_t packetLength);
-
-int receiveCommand(unsigned char* command, int tryTimeout);
-
-int sendCommand(unsigned char command, unsigned char expectedResponse, int tryTimeout, int retries, unsigned char address);
-
-int receiveResponse(unsigned char response, int currentTry);
-
-int sendResponse(unsigned char response, unsigned char address);
 
 int setLink();
 
@@ -114,16 +102,11 @@ int waitCloseLink();
 
 int confirmCloseLink();
 
-int toPhysical(unsigned char* frame);
-
-int fromPhysical(unsigned char* frame, int exitOnTimeout);
-
 void timeout();
 
 void initializeLog(char * logname);
-
 void writeToLog(char * string);
-
 void writeFrameToLog(unsigned char * frame, int direction);
+
 
 #endif

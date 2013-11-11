@@ -42,12 +42,6 @@ int sendFile(unsigned char* file, size_t fileSize, char* fileName);
 
 unsigned char* receiveFile(size_t* fileSize, char** fileName);
 
-unsigned char* createDataPacket(unsigned char sequenceNumber, size_t dataFieldLength, unsigned char* data);
-
-unsigned char* createControlPacket(size_t* sizeOfPacket, unsigned char controlField, size_t fileSize, char* fileName);
-
-int compareControlPackets(unsigned char* packet1, unsigned char* packet2);
-
 unsigned char* readFile(char *fileName, size_t* fileSize);
 
 int writeFile(unsigned char* fileBuffer, char* fileName, size_t fileSize);

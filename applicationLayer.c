@@ -1,5 +1,10 @@
 #include "applicationLayer.h"
 
+
+static unsigned char* createDataPacket(unsigned char sequenceNumber, size_t dataFieldLength, unsigned char* data);
+static unsigned char* createControlPacket(size_t* sizeOfPacket, unsigned char controlField, size_t fileSize, char* fileName);
+static int compareControlPackets(unsigned char* packet1, unsigned char* packet2);
+
 // loadBar code based on
 // http://www.rosshemsley.co.uk/2011/02/creating-a-progress-bar-in-c-or-any-other-console-app/
 // Process has done x out of n rounds,

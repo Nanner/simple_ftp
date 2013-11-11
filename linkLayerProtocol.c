@@ -6,6 +6,16 @@ static unsigned int framesReceived = 0;
 static unsigned int rejNumber = 0;
 static unsigned int timeouts = 0;
 
+static int receiveCommand(unsigned char* command, int tryTimeout);
+static int sendCommand(unsigned char command, unsigned char expectedResponse, int tryTimeout, int retries, unsigned char address);
+static int receiveResponse(unsigned char response, int currentTry);
+static int sendResponse(unsigned char response, unsigned char address);
+
+static void stuffFrame(unsigned char* destuffedFrame, unsigned char* stuffedFrame, size_t frameSize, size_t maxInformationSize);
+static void destuffFrame(unsigned char* stuffedFrame, unsigned char* destuffedFrame, size_t frameSize, size_t maxInformationSize);
+static int toPhysical(unsigned char* frame);
+static int fromPhysical(unsigned char* frame, int exitOnTimeout);
+
 int setBaudrate(char * baudrateString){
     speed_t rates[] = {B0, B110, B115200, B1200, B134, B150, B1800, B19200, B200, B230400, B2400, B300, B38400, B4800, B50, B57600, B600, B75, B9600};
     char * rateStrings[]= {"B0", "B110", "B115200", "B1200", "B134", "B150", "B1800", "B19200", "B200", "B230400", "B2400", "B300", "B38400", "B4800", "B50", "B57600", "B600", "B75", "B9600"};
