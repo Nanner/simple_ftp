@@ -162,7 +162,6 @@ unsigned char* receiveFile(size_t* fileSize, char** fileName) {
 	if(packet == NULL) {
 		printf("Failed to allocate memory for packet, terminating\n");
 		free(startPacket);
-		free(file);
 		return NULL;
 	}
 	unsigned int transmissionOver = 0;
