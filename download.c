@@ -271,32 +271,32 @@ for (i=0;i<6; ++i)
 int receivedPort = numbers[4] * 256 + numbers[5];
 printf("Port: %d\n", receivedPort);
 
-	int	sockfd2;
-	struct	sockaddr_in server_addr2;
-	
-	/*server address handling*/
-	bzero((char*)&server_addr2,sizeof(server_addr2));
-	server_addr2.sin_family = AF_INET;
-	server_addr2.sin_addr.s_addr = inet_addr(host);	/*32 bit Internet address network byte ordered*/
-	server_addr2.sin_port = htons(receivedPort);		/*server TCP port must be network byte ordered */
-
-	/*open a TCP socket*/
-	if ((sockfd2 = socket(AF_INET,SOCK_STREAM,0)) < 0) {
-		perror("socket()");
-		exit(0);
-	}
-	/*connect to the server*/
-	if(connect(sockfd2, 
-		(struct sockaddr *)&server_addr2, 
-		sizeof(server_addr2)) < 0){
-		perror("connect()");
-	exit(0);
-}
-
-getResponse(sockfd2, response);
+//	int	sockfd2;
+//	struct	sockaddr_in server_addr2;
+//	
+//	/*server address handling*/
+//	bzero((char*)&server_addr2,sizeof(server_addr2));
+//	server_addr2.sin_family = AF_INET;
+//	server_addr2.sin_addr.s_addr = inet_addr(host);	/*32 bit Internet address network byte ordered*/
+//	server_addr2.sin_port = htons(receivedPort);		server TCP port must be network byte ordered 
+//
+//	/*open a TCP socket*/
+//	if ((sockfd2 = socket(AF_INET,SOCK_STREAM,0)) < 0) {
+//		perror("socket()");
+//		exit(0);
+//	}
+//	/*connect to the server*/
+//	if(connect(sockfd2, 
+//		(struct sockaddr *)&server_addr2, 
+//		sizeof(server_addr2)) < 0){
+//		perror("connect()");
+//	exit(0);
+//}
+//
+//getResponse(sockfd2, response);
 
 close(sockfd);
-close(sockfd2);
+//close(sockfd2);
 exit(0);
 }
 
