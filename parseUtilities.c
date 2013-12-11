@@ -27,7 +27,6 @@ int parseUsername(char* username, char* url) {
 	uslen -= 6;
 	memcpy(username, url + 6, uslen);
 	username[uslen] = '\0';
-	printf("%s\n", username);
 	return 0;
 }
 
@@ -61,7 +60,6 @@ int parsePassword(char* password, char* url) {
 	paslen -= (uslen + 1);
 	memcpy(password, colonMatch + 1, paslen);
 	password[paslen] = '\0';
-	printf("%s\n", password);
 
 	return 0;
 }
@@ -96,10 +94,8 @@ int parseHostnameAndUrl(char* hostname, char* fileUrl, char* url) {
 	slashlen -= hostPosition;
 	memcpy(hostname, url + hostPosition, slashlen);
 	hostname[slashlen] = '\0';
-	printf("%s\n", hostname);
 
 	memcpy(fileUrl, slashMatch + 1, urlSize - (slashlen + hostPosition));
-	printf("%s\n", fileUrl);
 
 	return 0;
 }
@@ -133,8 +129,6 @@ int calculatePasvPort(int* port, char* response) {
 	size_t rawConNumbersLen = responseLen - rawLen - 5;
 	memcpy(rawConNumbers, response + rawLen + 1, rawConNumbersLen);
 	rawConNumbers[rawConNumbersLen] = '\0';
-	printf("%s\n", rawConNumbers);
-
 
 	int i;
 	char *p;

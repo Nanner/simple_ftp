@@ -1,23 +1,66 @@
 #include "ftpUtilities.h"
 
-int receiveFile(int sockfd, char* filename) {
-	printf("%s\n", "filename");
-	FILE* f=fopen(filename, "wb");
-	if(f == NULL) {
-		perror("receiveFile()");
-	}
-	char buf[1024];
-	int read;
-	printf("Receiving file...\n");
-	while ((read = recv(sockfd, buf, 1024, 0))) {
-        //printf("Read %d bytes", read);
-		fwrite(buf, read, 1, f);
-        //printf("Writing %d\n", read);
-	}
-	printf("File received!\n");
+struct hostent* getHostInfo(char* hostname) {
+	struct hostent *h;
 
-	fclose(f);
-	return 0;
+	if ((h=gethostbyname(hostname)) == NULL) {  
+		herror("gethostbyname");
+		exit(1);
+	}
+
+	return h;
+}
+
+int openTCPandConnectServer(char* hostname, unsigned int port) {
+	//Get hostent struct for the hostname provided and retrieve the host address
+	struct hostent* h = getHostInfo(hostname);
+	char* host = inet_ntoa(*((struct in_addr *)h->h_addr));
+
+	int	sockfd;
+	struct	sockaddr_in server_addr;
+	
+	//Server address handling
+	bzero((char*)&server_addr,sizeof(server_addr));
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_addr.s_addr = inet_addr(host);	/*32 bit Internet address network byte ordered*/
+	server_addr.sin_port = htons(port);		        /*server TCP port must be network byte ordered */
+
+	//Open a TCP socket
+	if ((sockfd = socket(AF_INET,SOCK_STREAM,0)) < 0) {
+		perror("socket()");
+		return -1;
+	}
+
+	//Connect to FTP server
+	if(connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+		perror("connect()");
+		return -1;
+	}
+
+	return sockfd;
+}
+
+int openDataPortAndDownloadFile(char* hostname, int receivedPort, char* filename) {
+	pid_t  pid;
+	pid = fork();
+
+	if (pid == -1) {
+		fprintf(stderr, "Can't fork, error %d\n", errno);
+		exit(EXIT_FAILURE);
+	}
+	else if (pid == 0) {
+		int	dataSocketFD = openTCPandConnectServer(hostname, receivedPort);
+		if(receiveFile(dataSocketFD, filename) != 0) {
+			fprintf(stderr, "Failed to receive file!\n");
+			close(dataSocketFD);
+			exit(1);
+		}
+		close(dataSocketFD);
+		exit(0);
+	}	
+	else {
+		return 0;
+	}
 }
 
 int getResponse(int sockfd, char* response) {
@@ -32,14 +75,13 @@ int getResponse(int sockfd, char* response) {
 	}
 	response[respRes] = '\0';
 	int returnCode = getReturnCode(response);
-	printf("<%s\n", response);
-	printf("Code: %d\n", returnCode);
+	printf("<%s", response);
 	return returnCode;
 }
 
 int communicate(int sockfd, char* com) {
 	int bytes = send(sockfd, com, strlen(com), 0);
-	printf(">%s\n", com);
+	printf(">%s", com);
 	if(bytes != strlen(com)) {
 		fprintf(stderr, "Error, problem communicating with server\n");
 		return -1;
@@ -47,62 +89,96 @@ int communicate(int sockfd, char* com) {
 	return 0;
 }
 
-int openDataPort(char* host, int receivedPort, char* filename) {
-	pid_t  pid;
-	pid = fork();
-
-	if (pid == -1) {
-		fprintf(stderr, "can't fork, error %d\n", errno);
-		exit(EXIT_FAILURE);
-	}
-	else if (pid == 0) {
-		int	sockfd2;
-		struct	sockaddr_in server_addr2;
-
-	/*server address handling*/
-	bzero((char*)&server_addr2,sizeof(server_addr2));
-	server_addr2.sin_family = AF_INET;
-	server_addr2.sin_addr.s_addr = inet_addr(host);	/*32 bit Internet address network byte ordered*/
-	server_addr2.sin_port = htons(receivedPort);	/*server TCP port must be network byte ordered*/
-
-	/*open a TCP socket*/
-		if ((sockfd2 = socket(AF_INET,SOCK_STREAM,0)) < 0) {
-			perror("socket()");
-			exit(0);
-		}
-	/*connect to the server*/
-		if(connect(sockfd2, 
-			(struct sockaddr *)&server_addr2, 
-			sizeof(server_addr2)) < 0){
-			perror("connect()");
-		exit(0);
+int checkIfServerReady(int commandSocketFD) {
+	char response[MAX_SIZE];
+	int code = 0;
+	code = getResponse(commandSocketFD, response);
+	if(code != 220) {
+		return -1;
 	}
 
-	if(receiveFile(sockfd2, filename) != 0) {
-		fprintf(stderr, "Failed to receive file!\n");
-		exit(1);
-	}
-	close(sockfd2);
-	exit(0);
-
-}
-else
-{
 	return 0;
 }
-return 0;
-}
 
-struct hostent* getHostInfo(char* hostname) {
-	struct hostent *h;
+int setUsername(int commandSocketFD, char* username) {
+	char response[MAX_SIZE];
+	char login[MAX_SIZE];
+	int code = 0;
 
-	if ((h=gethostbyname(hostname)) == NULL) {  
-		herror("gethostbyname");
-		exit(1);
+	sprintf(login, "user %s\n", username);
+
+	communicate(commandSocketFD, login);
+	code = getResponse(commandSocketFD, response);
+	if(code != 331) {
+		return -1;
 	}
 
-	printf("Host name  : %s\n", h->h_name);
-	printf("IP Address : %s\n",inet_ntoa(*((struct in_addr *)h->h_addr)));
+	return 0;
+}
 
-	return h;
+int setPassword(int commandSocketFD, char* password) {
+	char response[MAX_SIZE];
+	char pass[MAX_SIZE];
+	int code = 0;
+
+	sprintf(pass, "pass %s\n", password);
+
+	communicate(commandSocketFD, pass);
+	code = getResponse(commandSocketFD, response);
+	if(code != 230) {
+		return -1;
+	}
+
+	return 0;
+}
+
+int setPassiveMode(int commandSocketFD) {
+	char response[MAX_SIZE];
+	int code = 0;
+
+	communicate(commandSocketFD, "pasv\n");
+	code = getResponse(commandSocketFD, response);
+	if(code != 227) {
+		return -1;
+	}
+
+	int receivedPort = 0;
+	if(calculatePasvPort(&receivedPort, response) != 0) {
+		return -1;
+	}
+
+	return receivedPort;
+}
+
+int retrieveFile(int commandSocketFD, char* fileUrl) {
+	char response[MAX_SIZE];
+	char command[MAX_SIZE];
+	int code = 0;
+	sprintf(command, "retr %s\n", fileUrl);
+
+	communicate(commandSocketFD, command);
+	code = getResponse(commandSocketFD, response);
+
+	if(code != 150) {
+		return -1;
+	}
+
+	return 0;
+}
+
+int receiveFile(int sockfd, char* filename) {
+	FILE* f=fopen(filename, "wb");
+	if(f == NULL) {
+		perror("receiveFile()");
+	}
+	char buf[1024];
+	int read;
+	printf("Receiving file...\n");
+	while ((read = recv(sockfd, buf, 1024, 0))) {
+		fwrite(buf, read, 1, f);
+	}
+	printf("File received!\n");
+
+	fclose(f);
+	return 0;
 }

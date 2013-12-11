@@ -14,9 +14,17 @@
 
 struct hostent* getHostInfo(char* hostname);
 
+int openTCPandConnectServer(char* hostname, unsigned int port);
+int openDataPortAndDownloadFile(char* hostname, int receivedPort, char* filename);
+
 int getResponse(int sockfd, char* response);
 int communicate(int sockfd, char* com);
 
-int openDataPort(char* host, int receivedPort, char* filename);
 int receiveFile(int sockfd, char* filename);
+
+int checkIfServerReady(int commandSocketFD);
+int setUsername(int commandSocketFD, char* username);
+int setPassword(int commandSocketFD, char* password);
+int setPassiveMode(int commandSocketFD);
+int retrieveFile(int commandSocketFD, char* fileUrl);
 #endif
