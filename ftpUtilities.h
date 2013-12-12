@@ -20,9 +20,10 @@ void handler();
 struct hostent* getHostInfo(char* hostname);
 
 int openTCPandConnectServer(char* hostname, unsigned int port);
-int openDataPortAndDownloadFile(char* hostname, int receivedPort, char* filename);
+int openDataPort(char* hostname, int receivedPort);
+int downloadFile(int dataSocketFD, char* filename);
 
-int getResponse(int sockfd, char* response);
+int getResponse(int sockfd, char* response, int cleanBuffer);
 int communicate(int sockfd, char* com);
 
 int receiveFile(int sockfd, char* filename);
@@ -32,4 +33,6 @@ int setUsername(int commandSocketFD, char* username);
 int setPassword(int commandSocketFD, char* password);
 int setPassiveMode(int commandSocketFD);
 int retrieveFile(int commandSocketFD, char* fileUrl);
+
+int cleanUpSocket(int socketfd);
 #endif

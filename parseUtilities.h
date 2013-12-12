@@ -7,6 +7,7 @@
 #include <libgen.h> //dealing with file paths
 
 #define MAX_SIZE 4096
+#define INT_DIGITS 19
 
 int hasLoginField(char* url);
 int parseUsername(char* username, char* url);
@@ -18,5 +19,7 @@ char* parseFilename(char* fileUrl);
 int getReturnCode(char* response);
 
 int calculatePasvPort(int* port, char* response);
+
+char* itoa(int i);
 
 #endif

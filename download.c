@@ -91,20 +91,27 @@ int main(int argc, char** argv){
 		exit(1);
 	}
 
-	if(openDataPortAndDownloadFile(hostname, receivedPort, filename) != 0) {
+	printf("going to dld file\n");
+
+	int dataSocketFD = openDataPort(hostname, receivedPort);
+	if(dataSocketFD == -1) {
 		fprintf(stderr, "Failed opening the data port and downloading file from server!\n");
 		close(commandSocketFD);
 		exit(1);
 	}
 
-	usleep(1000);
 	if(retrieveFile(commandSocketFD, fileUrl) != 0) {
 		fprintf(stderr, "Failed to open data connection. Is file OK?\n");
 		close(commandSocketFD);
 		exit(1);
 	}
 
+	if(downloadFile(dataSocketFD, filename) != 0) {
+		fprintf(stderr, "Failed to receive file!\n");
+		close(dataSocketFD);
+	}
+
+	close(dataSocketFD);
 	close(commandSocketFD);
-	waitpid (child, 0, 0);
 	exit(0);
 }
