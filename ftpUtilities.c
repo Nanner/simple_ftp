@@ -1,5 +1,15 @@
 #include "ftpUtilities.h"
 
+void handler() {
+  //Kill child process, if created
+  if (child > 0) {
+    kill (child, SIGINT);
+    waitpid (child, 0, 0);
+  }
+
+  //Kill self
+  kill (getpid (), SIGTERM);
+}
 struct hostent* getHostInfo(char* hostname) {
 	struct hostent *h;
 
@@ -7,6 +17,9 @@ struct hostent* getHostInfo(char* hostname) {
 		herror("gethostbyname");
 		exit(1);
 	}
+
+	printf("Host name  : %s\n", h->h_name);
+    printf("IP Address : %s\n",inet_ntoa(*((struct in_addr *)h->h_addr)));
 
 	return h;
 }
@@ -59,6 +72,7 @@ int openDataPortAndDownloadFile(char* hostname, int receivedPort, char* filename
 		exit(0);
 	}	
 	else {
+		child = pid;
 		return 0;
 	}
 }

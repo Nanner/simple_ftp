@@ -3,6 +3,11 @@
 #define SERVER_PORT 21
 
 int main(int argc, char** argv){
+	struct sigaction sa, old;
+	sa.sa_handler = handler;
+  	sigemptyset (&sa.sa_mask);
+  	sa.sa_flags = 0;
+  	sigaction (SIGINT, &sa, &old);
 
 	if (argc != 2) {  
 		fprintf(stderr,"Usage: download ftp://[<user>:<password>@]<host>/<url-path>\n");
@@ -100,5 +105,6 @@ int main(int argc, char** argv){
 	}
 
 	close(commandSocketFD);
+	waitpid (child, 0, 0);
 	exit(0);
 }
