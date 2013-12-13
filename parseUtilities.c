@@ -110,38 +110,35 @@ int getReturnCode(char* response) {
 	return atoi(code);
 }
 
+void getLineIdentifier(char* response, char* ident) {
+	memcpy(ident, response, 4);
+}
+
 int calculatePasvPort(int* port, char* response) {
+	printf("Port raw: %s\n", response);
 	char rawConNumbers[MAX_SIZE];
 
-	//Find  first parenthesis
+	//Find first parenthesis
 	char* parMatch = strchr(response, '(');
 	if(parMatch == NULL) {
 		return -1;
 	}
 
-	//Calculate distance from beggining of string
-	size_t rawLen = parMatch - response;
-	size_t responseLen = strlen(response);
-	if(rawLen >= responseLen - 1) {
-		rawLen = responseLen - 1;
+	//Find last parenthesis
+	char* parMatch2 = strchr(response, ')');
+	if(parMatch2 == NULL) {
+		return -1;
 	}
 
-	size_t rawConNumbersLen = responseLen - rawLen - 5;
-	memcpy(rawConNumbers, response + rawLen + 1, rawConNumbersLen);
-	rawConNumbers[rawConNumbersLen] = '\0';
+	size_t rawNumLen = parMatch2 - parMatch;
 
-	int i;
-	char *p;
-	int numbers[6];
-	i = 0;
-	p = strtok (rawConNumbers,",");  
-	while (p != NULL)
-	{
-		numbers[i++] = atoi(p);
-		p = strtok (NULL, ",");
-	}
+	memcpy(rawConNumbers, parMatch+1, rawNumLen);
+	rawConNumbers[rawNumLen] = '\0';
+	int n1,n2,n3,n4,n5,n6;
+	sscanf(rawConNumbers, "%d,%d,%d,%d,%d,%d", &n1, &n2, &n3, &n4, &n5, &n6);
+	printf("not raw: %d,%d,%d,%d,%d,%d\n", n1,n2,n3,n4,n5,n6);
 
-	*port = numbers[4] * 256 + numbers[5];
+	*port = (n5 * 256) + n6;
 	return 0;
 }
 

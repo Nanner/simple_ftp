@@ -105,58 +105,75 @@ int downloadFile(int dataSocketFD, char* filename) {
 	return 0;
 }
 
-int getResponse(int sockfd, char* response, int fullResponse) {
-	int respRes = recv(sockfd, response, MAX_SIZE, 0);
-	if(respRes == 0) {
-		fprintf(stderr, "Host closed connection!\n");
-		exit(1);
-	}
-	if(respRes == -1) {
-		perror("recv()");
-		exit(1);
-	}
-	response[respRes] = '\0';
-	printf("hey.\n");
-	int returnCode = getReturnCode(response);
-	//printf("<%s", response);
-	return returnCode;
-	/*char buf[1];
-	int read, totalRead = 0;
-	char code[3];
-	int i = 0;
-	while (1) {
-		read = recv(sockfd, buf, 1, MSG_DONTWAIT);
-		
-        if(errno == EAGAIN) {
-        	if(totalRead == 0)
-        		continue;
-        	else if(totalRead > 0)
-        		break;
-        }
-		if(read <= 0)
-			break;
-		if(i < 3) {
-			code[i] = buf[0];
-			i++;
-		}
-		else {
-			if(clean)
-				break;
-		}
-		fwrite(buf, read, 1, stdout);
-		totalRead += read;
-		printf("printing\n");
-		//printf("%d\n", buf[0]);
-	}
-	fwrite("\n\0", 2, 1, stdout);
-	if(clean)
-		cleanUpSocket(sockfd);
-	//printf("File received!\n");
+int getResponse(int sockfd, char* response, int cleanBuffer) {
+	int ind = 0, totalSize = 0;
+	char line[MAX_LINE_SIZE];
+	int isMultiLine = 0;
+	int returnCode = 0;
 
-	//fclose(f);
-	//printf("%d\n", atoi(code));
-	return atoi(code);
-	*/
+	//Read a line
+	ind = readLine(sockfd, line);
+	//Copy said line to the response variable
+	memcpy(response+totalSize, line, ind);
+	//Calculate the line "return code"
+	returnCode = getReturnCode(line);
+	//Update total response size with line size
+	totalSize += ind;  
+	//Get line identifier(i.e.: "220-" or "220 ")                      
+	char ident[4];
+	getLineIdentifier(line, ident);
+	printf("Read first line\n");
+
+	//A multiline FTP response is identified by
+	//[code]-
+	//[code]- something
+	//[code]- something
+	//[code]- something
+	//[code]
+	//So we need to read from the server while we dont get a return code the same as the first line's followed
+	//by an empty space
+	if(ident[3] == '-')
+		isMultiLine = 1;
+	if(isMultiLine) {
+		int lineReturnCode;
+		char lineIdent[4];
+		do {
+			ind = readLine(sockfd, line);
+			memcpy(response+totalSize, line, ind);
+			lineReturnCode = getReturnCode(line);
+			totalSize += ind;
+			getLineIdentifier(line, lineIdent);
+			printf("Read line\n");
+		} while(lineReturnCode != returnCode || lineIdent[3] != ' ');
+	}
+
+	response[totalSize] = '\0';
+	printf("<%s", response);
+	return returnCode;
+}
+
+int readLine(int sockfd, char* line) {
+	int lineSize = 0;
+	char buf[1];
+	int r = 0;
+
+	//An FTP line always ends on a LF+CR sequence, that is, line feed (newline) and carriage return
+	//So we keep on reading until we find this sequence
+	do {
+		r = recv(sockfd, buf, 1, 0);
+		if(r == 0) {
+			fprintf(stderr, "Host closed connection!\n");
+			exit(1);
+		}
+		if(r == -1) {
+			perror("recv()");
+			exit(1);
+		}
+		line[lineSize] = buf[0];
+		lineSize++;
+	}
+	while(lineSize < 2 || line[lineSize - 1] != '\n' || line[lineSize - 2] != '\r');
+	return lineSize;
 }
 
 int communicate(int sockfd, char* com) {
@@ -174,8 +191,11 @@ int checkIfServerReady(int commandSocketFD) {
 	int code = 0;
 	code = getResponse(commandSocketFD, response, 1);
 	if(code != 220) {
+		printf("Failed with code %d\n", code);
 		return -1;
 	}
+
+	cleanUpSocket(commandSocketFD);
 
 	return 0;
 }
@@ -188,8 +208,16 @@ int setUsername(int commandSocketFD, char* username) {
 	sprintf(login, "user %s\n", username);
 
 	communicate(commandSocketFD, login);
+
 	code = getResponse(commandSocketFD, response, 1);
+
+	//In cases where the server messages are long
+	while(code == 220) {
+		code = getResponse(commandSocketFD, response, 1);
+	}
+
 	if(code != 331) {
+		printf("Failed with code %d\n", code);
 		return -1;
 	}
 
@@ -205,7 +233,14 @@ int setPassword(int commandSocketFD, char* password) {
 
 	communicate(commandSocketFD, pass);
 	code = getResponse(commandSocketFD, response, 1);
+
+	//In cases where the server messages are long
+	while(code == 220) {
+		code = getResponse(commandSocketFD, response, 1);
+	}
+
 	if(code != 230) {
+		printf("Failed with code %d\n", code);
 		return -1;
 	}
 
@@ -217,8 +252,15 @@ int setPassiveMode(int commandSocketFD) {
 	int code = 0;
 
 	communicate(commandSocketFD, "pasv\n");
-	code = getResponse(commandSocketFD, response, 0);
+
+	//In cases where the server messages are long
+	while(code == 220) {
+		code = getResponse(commandSocketFD, response, 1);
+	}
+
+	code = getResponse(commandSocketFD, response, 1);
 	if(code != 227) {
+		printf("Failed with code %d\n", code);
 		return -1;
 	}
 
@@ -241,7 +283,13 @@ int retrieveFile(int commandSocketFD, char* fileUrl) {
 	printf("comunicated, going to get response\n");
 	code = getResponse(commandSocketFD, response, 1);
 
+	//In cases where the server messages are long
+	while(code == 220) {
+		code = getResponse(commandSocketFD, response, 1);
+	}
+
 	if(code != 150) {
+		printf("Failed with code %d\n", code);
 		return -1;
 	}
 

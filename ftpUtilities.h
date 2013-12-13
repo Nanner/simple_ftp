@@ -23,6 +23,7 @@ int openTCPandConnectServer(char* hostname, unsigned int port);
 int openDataPort(char* hostname, int receivedPort);
 int downloadFile(int dataSocketFD, char* filename);
 
+int readLine(int sockfd, char* line);
 int getResponse(int sockfd, char* response, int cleanBuffer);
 int communicate(int sockfd, char* com);
 
