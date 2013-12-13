@@ -115,7 +115,6 @@ void getLineIdentifier(char* response, char* ident) {
 }
 
 int calculatePasvPort(int* port, char* response) {
-	printf("Port raw: %s\n", response);
 	char rawConNumbers[MAX_SIZE];
 
 	//Find first parenthesis
@@ -136,10 +135,32 @@ int calculatePasvPort(int* port, char* response) {
 	rawConNumbers[rawNumLen] = '\0';
 	int n1,n2,n3,n4,n5,n6;
 	sscanf(rawConNumbers, "%d,%d,%d,%d,%d,%d", &n1, &n2, &n3, &n4, &n5, &n6);
-	printf("not raw: %d,%d,%d,%d,%d,%d\n", n1,n2,n3,n4,n5,n6);
 
 	*port = (n5 * 256) + n6;
 	return 0;
+}
+
+int getFileSize(char* response) {
+	//Find first parenthesis
+	char* parMatch = strchr(response, '(');
+	if(parMatch == NULL) {
+		return -1;
+	}
+
+	//Find last parenthesis
+	char* parMatch2 = strchr(response, ')');
+	if(parMatch2 == NULL) {
+		return -1;
+	}
+
+	size_t sizeLen = parMatch2 - parMatch;
+
+	char size[INT_DIGITS + 2 + 7];
+	memcpy(size, parMatch+1, sizeLen);
+	size[sizeLen] = '\0';
+	int sizeN = 0;
+	sscanf(size, "%d bytes", &sizeN);
+	return sizeN;
 }
 
 char* itoa(int i) {

@@ -1,24 +1,44 @@
 #include "ftpUtilities.h"
 
-void handler() {
-  //Kill child process, if created
-  if (child > 0) {
-    kill (child, SIGINT);
-    waitpid (child, 0, 0);
-  }
-
-  //Kill self
-  kill (getpid (), SIGTERM);
+// loadBar code based on
+// http://www.rosshemsley.co.uk/2011/02/creating-a-progress-bar-in-c-or-any-other-console-app/
+// Process has done x out of n rounds,
+// and we want a bar of width w and resolution r.
+static inline void loadBar(int x, int n, int r, int w, int doneSize, int totalSize) {
+    // Only update r times.
+    if ( x % (n/r) != 0 ) return;
+ 
+    // Calculuate the ratio of complete-to-incomplete.
+    float ratio = x/(float)n;
+    int   c     = ratio * w;
+ 
+    // Show the percentage complete.
+    printf("%3d%%[", (int)(ratio*100));
+ 
+    // Show the load bar.
+    int y;
+    for (y = 0; y < c; y++)
+       printf("=");
+ 
+    for (y = c; y < w; y++)
+       printf(" ");
+ 
+    // ANSI Control codes to go back to the
+    // previous line and clear it.
+   	printf("] %d/%d B", doneSize, totalSize);
+	printf("\r"); // Move to the first column
+	fflush(stdout);
+	if(x == n) {
+		printf("\n");
+	}
 }
+
 struct hostent* getHostInfo(char* hostname) {
 	struct hostent *h;
 
 	if ((h=gethostbyname(hostname)) == NULL) {
 		return NULL; 
 	}
-
-	printf("Host name  : %s\n", h->h_name);
-    printf("IP Address : %s\n",inet_ntoa(*((struct in_addr *)h->h_addr)));
 
 	return h;
 }
@@ -32,64 +52,32 @@ int openTCPandConnectServer(char* hostname, unsigned int port) {
 	}
 	char* host = inet_ntoa(*((struct in_addr *)h->h_addr));
 
-	/*
-	int	sockfd;
-	struct	sockaddr_in server_addr;
-	
-	//Server address handling
-	bzero((char*)&server_addr,sizeof(server_addr));
-	server_addr.sin_family = AF_INET;
-	server_addr.sin_addr.s_addr = inet_addr(host);	//32 bit Internet address network byte ordered
-	server_addr.sin_port = htons(port);		        //server TCP port must be network byte ordered
-
-	//Open a TCP socket
-	if ((sockfd = socket(AF_INET,SOCK_STREAM,0)) < 0) {
-		perror("socket()");
-		return -1;
-	}
-
-	printf("%s\n", host);
-	printf("%u\n", server_addr.sin_addr.s_addr);
-
-	//Connect to FTP server
-	if(connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-		perror("connect()");
-		return -1;
-	}
-
-	printf("Lol\n");	
-
-	return sockfd;
-	*/
-
 	struct addrinfo server_addr, *res;
 	int sockfd, status;
 
 	// first, load up address structs with getaddrinfo():
-
 	memset(&server_addr, 0, sizeof server_addr);
 	server_addr.ai_family = AF_INET;
 	server_addr.ai_socktype = SOCK_STREAM;
 
 	char* portStr = itoa(port);
-	printf("%s\n", portStr);
 	if((status = getaddrinfo(host, portStr, &server_addr, &res)) != 0) {
 	    fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
 	    exit(1);
 	}
 
-	// make a socket:
+	//create socket
 	if((sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0) {
 		perror("socket()");
 		return -1;
 	}
 
-	// connect!
+	// connect
 	if((connect(sockfd, res->ai_addr, res->ai_addrlen) < 0)) {
 		perror("connect()");
 		return -1;
 	}
-	printf("Opened socket on port %s\n", portStr);
+
 	return sockfd;
 }
 
@@ -98,14 +86,7 @@ int openDataPort(char* hostname, int receivedPort) {
 	return(dataSocketFD);
 }
 
-int downloadFile(int dataSocketFD, char* filename) {
-	if(receiveFile(dataSocketFD, filename) != 0) {
-		return(-1);
-	}
-	return 0;
-}
-
-int getResponse(int sockfd, char* response, int cleanBuffer) {
+int getResponse(int sockfd, char* response, int verbose) {
 	int ind = 0, totalSize = 0;
 	char line[MAX_LINE_SIZE];
 	int isMultiLine = 0;
@@ -122,7 +103,6 @@ int getResponse(int sockfd, char* response, int cleanBuffer) {
 	//Get line identifier(i.e.: "220-" or "220 ")                      
 	char ident[4];
 	getLineIdentifier(line, ident);
-	printf("Read first line\n");
 
 	//A multiline FTP response is identified by
 	//[code]-
@@ -143,12 +123,14 @@ int getResponse(int sockfd, char* response, int cleanBuffer) {
 			lineReturnCode = getReturnCode(line);
 			totalSize += ind;
 			getLineIdentifier(line, lineIdent);
-			printf("Read line\n");
 		} while(lineReturnCode != returnCode || lineIdent[3] != ' ');
 	}
 
 	response[totalSize] = '\0';
-	printf("<%s", response);
+
+	if(verbose)
+		printf("%s", response);
+
 	return returnCode;
 }
 
@@ -176,45 +158,42 @@ int readLine(int sockfd, char* line) {
 	return lineSize;
 }
 
-int communicate(int sockfd, char* com) {
+int communicate(int sockfd, char* com, int verbose) {
 	int bytes = send(sockfd, com, strlen(com), 0);
-	printf(">%s", com);
+
 	if(bytes != strlen(com)) {
 		fprintf(stderr, "Error, problem communicating with server\n");
 		return -1;
 	}
+
+	if(verbose)
+		printf(">%s", com);
+
 	return 0;
 }
 
-int checkIfServerReady(int commandSocketFD) {
+int checkIfServerReady(int commandSocketFD, int verbose) {
 	char response[MAX_SIZE];
 	int code = 0;
-	code = getResponse(commandSocketFD, response, 1);
+	code = getResponse(commandSocketFD, response, verbose);
 	if(code != 220) {
 		printf("Failed with code %d\n", code);
 		return -1;
 	}
 
-	cleanUpSocket(commandSocketFD);
-
 	return 0;
 }
 
-int setUsername(int commandSocketFD, char* username) {
+int setUsername(int commandSocketFD, char* username, int verbose) {
 	char response[MAX_SIZE];
 	char login[MAX_SIZE];
 	int code = 0;
 
 	sprintf(login, "user %s\n", username);
 
-	communicate(commandSocketFD, login);
+	communicate(commandSocketFD, login, verbose);
 
-	code = getResponse(commandSocketFD, response, 1);
-
-	//In cases where the server messages are long
-	while(code == 220) {
-		code = getResponse(commandSocketFD, response, 1);
-	}
+	code = getResponse(commandSocketFD, response, verbose);
 
 	if(code != 331) {
 		printf("Failed with code %d\n", code);
@@ -224,20 +203,16 @@ int setUsername(int commandSocketFD, char* username) {
 	return 0;
 }
 
-int setPassword(int commandSocketFD, char* password) {
+int setPassword(int commandSocketFD, char* password, int verbose) {
 	char response[MAX_SIZE];
 	char pass[MAX_SIZE];
 	int code = 0;
 
 	sprintf(pass, "pass %s\n", password);
 
-	communicate(commandSocketFD, pass);
-	code = getResponse(commandSocketFD, response, 1);
+	communicate(commandSocketFD, pass, verbose);
 
-	//In cases where the server messages are long
-	while(code == 220) {
-		code = getResponse(commandSocketFD, response, 1);
-	}
+	code = getResponse(commandSocketFD, response, verbose);
 
 	if(code != 230) {
 		printf("Failed with code %d\n", code);
@@ -247,18 +222,13 @@ int setPassword(int commandSocketFD, char* password) {
 	return 0;
 }
 
-int setPassiveMode(int commandSocketFD) {
+int setPassiveMode(int commandSocketFD, int verbose) {
 	char response[MAX_SIZE];
 	int code = 0;
 
-	communicate(commandSocketFD, "pasv\n");
+	communicate(commandSocketFD, "pasv\n", verbose);
 
-	//In cases where the server messages are long
-	while(code == 220) {
-		code = getResponse(commandSocketFD, response, 1);
-	}
-
-	code = getResponse(commandSocketFD, response, 1);
+	code = getResponse(commandSocketFD, response, verbose);
 	if(code != 227) {
 		printf("Failed with code %d\n", code);
 		return -1;
@@ -272,60 +242,49 @@ int setPassiveMode(int commandSocketFD) {
 	return receivedPort;
 }
 
-int retrieveFile(int commandSocketFD, char* fileUrl) {
+int retrieveFile(int commandSocketFD, char* fileUrl, int verbose) {
 	char response[MAX_SIZE];
 	char command[MAX_SIZE];
 	int code = 0;
 	sprintf(command, "retr %s\n", fileUrl);
 
-	communicate(commandSocketFD, command);
+	communicate(commandSocketFD, command, verbose);
 
-	printf("comunicated, going to get response\n");
-	code = getResponse(commandSocketFD, response, 1);
-
-	//In cases where the server messages are long
-	while(code == 220) {
-		code = getResponse(commandSocketFD, response, 1);
-	}
+	code = getResponse(commandSocketFD, response, verbose);
+	int size = getFileSize(response);
 
 	if(code != 150) {
 		printf("Failed with code %d\n", code);
 		return -1;
 	}
 
+	return size;
+}
+
+int downloadFile(int dataSocketFD, char* filename, int fileSize) {
+	if(receiveFile(dataSocketFD, filename, fileSize) != 0) {
+		return(-1);
+	}
 	return 0;
 }
 
-int receiveFile(int sockfd, char* filename) {
+int receiveFile(int sockfd, char* filename, int fileSize) {
 	FILE* f=fopen(filename, "wb");
 	if(f == NULL) {
 		perror("receiveFile()");
 	}
 	char buf[1024];
 	int read;
+	int sizeReceived = 0;
 	printf("Receiving file...\n");
+	loadBar(0, fileSize, fileSize, 50, 0, fileSize);
 	while ((read = recv(sockfd, buf, 1024, 0))) {
 		fwrite(buf, read, 1, f);
+		sizeReceived += read;
+		loadBar(sizeReceived, fileSize, fileSize, 50, sizeReceived, fileSize);
 	}
 	printf("File received!\n");
 
 	fclose(f);
 	return 0;
-}
-
-int cleanUpSocket(int socketfd) {
-    int r;
-    char buf[1024];
-    do {
-        r = recv(socketfd, buf, 1024, MSG_DONTWAIT);
-        if (r < 0 && errno == EINTR)
-        	continue;
-    }
-    while (r > 0);
-
-    if (r < 0 && errno != EWOULDBLOCK) {
-        perror(__func__);
-        return -1;
-    }
-    return r;
 }

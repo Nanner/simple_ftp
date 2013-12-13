@@ -3,16 +3,23 @@
 #define SERVER_PORT 21
 
 int main(int argc, char** argv){
-	struct sigaction sa, old;
-	sa.sa_handler = handler;
-  	sigemptyset (&sa.sa_mask);
-  	sa.sa_flags = 0;
-  	sigaction (SIGINT, &sa, &old);
-
-	if (argc != 2) {  
+	if (argc < 2 && argc > 3) {  
 		fprintf(stderr,"Usage: download ftp://[<user>:<password>@]<host>/<url-path>\n");
 		exit(1);
 	}
+
+	int verbose = 0;
+	int opt = getopt (argc, argv, "v");
+	if(opt == 'v') {
+		verbose = 1;
+	}
+
+	printf("\n------------------------------\n");
+	printf("--RCOM 2013/2014 FTP Client --\n");
+	printf("Diogo Santos & Pedro Fernandes\n");
+	printf("------------------------------\n\n");
+
+	printf("Loading & connecting...\n\n");
 
 	char username[MAX_SIZE] = "";
 	char password[MAX_SIZE] = "";
@@ -51,47 +58,45 @@ int main(int argc, char** argv){
 		exit(0);
 	}
 
-	if(checkIfServerReady(commandSocketFD) != 0) {
+	if(checkIfServerReady(commandSocketFD, verbose) != 0) {
 		fprintf(stderr, "Server failed to get ready for new user\n");
 		close(commandSocketFD);
 		exit(1);
 	}
 
 	if(hasUserPass) {
-		if(setUsername(commandSocketFD, username) != 0) {
+		if(setUsername(commandSocketFD, username, verbose) != 0) {
 			fprintf(stderr, "Failed to set username\n");
 			close(commandSocketFD);
 			exit(1);
 		}
 
-		if(setPassword(commandSocketFD, password) != 0) {
+		if(setPassword(commandSocketFD, password, verbose) != 0) {
 			fprintf(stderr, "Log in failed. Wrong password?\n");
 			close(commandSocketFD);
 			exit(1);
 		}
 	}
 	else {
-		if(setUsername(commandSocketFD, "anonymous") != 0) {
+		if(setUsername(commandSocketFD, "anonymous", verbose) != 0) {
 			fprintf(stderr, "Failed to set username\n");
 			close(commandSocketFD);
 			exit(1);
 		}
 
-		if(setPassword(commandSocketFD, "") != 0) {
+		if(setPassword(commandSocketFD, "", verbose) != 0) {
 			fprintf(stderr, "Log in failed. Wrong password?\n");
 			close(commandSocketFD);
 			exit(1);
 		}
 	}
 
-	int receivedPort = setPassiveMode(commandSocketFD);
+	int receivedPort = setPassiveMode(commandSocketFD, verbose);
 	if(receivedPort == -1) {
 		fprintf(stderr, "Failed to set passive mode\n");
 		close(commandSocketFD);
 		exit(1);
 	}
-
-	printf("going to dld file\n");
 
 	int dataSocketFD = openDataPort(hostname, receivedPort);
 	if(dataSocketFD == -1) {
@@ -100,13 +105,14 @@ int main(int argc, char** argv){
 		exit(1);
 	}
 
-	if(retrieveFile(commandSocketFD, fileUrl) != 0) {
+	int fileSize;
+	if((fileSize = retrieveFile(commandSocketFD, fileUrl, verbose)) == -1) {
 		fprintf(stderr, "Failed to open data connection. Is file OK?\n");
 		close(commandSocketFD);
 		exit(1);
 	}
 
-	if(downloadFile(dataSocketFD, filename) != 0) {
+	if(downloadFile(dataSocketFD, filename, fileSize) != 0) {
 		fprintf(stderr, "Failed to receive file!\n");
 		close(dataSocketFD);
 	}

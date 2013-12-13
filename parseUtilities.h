@@ -22,6 +22,8 @@ void getLineIdentifier(char* response, char* ident);
 
 int calculatePasvPort(int* port, char* response);
 
+int getFileSize(char* response);
+
 char* itoa(int i);
 
 #endif
